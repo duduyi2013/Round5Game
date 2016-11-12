@@ -1,0 +1,8 @@
+*
+!/ProjectSettings/
+!/ProjectSettings/*
+!/Assets/
+!/Assets/Script/
+!/Assets/Script/characterContrl/
+!/Assets/Script/characterContrl/*
+!.gitignore
