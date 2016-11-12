@@ -14,7 +14,7 @@ public class Movement : MonoBehaviour {
     SteamVR_Controller.Device _lockingDevice;
 
     float _rotTime = 0.5f;
-    public float _moveSpeed = 4.0f;
+    public float _moveSpeed = 12.0f;
     float _radius = 5.0f;
 
     Vector3 _myForward;
@@ -29,7 +29,7 @@ public class Movement : MonoBehaviour {
 
     float _lerpEndDistance = 0.01f;
     float _lerpEndRate = 0.005f;
-    public float _lerpTime = 4f;
+    public float _lerpTime = 2f;
 
     enum ViewMode {
         FirstPerson,
@@ -43,8 +43,12 @@ public class Movement : MonoBehaviour {
     ViewMode _targetMode;
     ViewMode _curMode;
 
+	//walking
     float _inputFactor;
     bool _isPressing;
+	public float _walkRunTransitDur = 0.3f;
+
+
     bool _isCamStatic; //watching character moving away without updating the positino of camera
     bool _isMoveUnderControl; // only disable movement
 
@@ -54,7 +58,7 @@ public class Movement : MonoBehaviour {
     Vector3 _lastPress;
     float _pressGapTimer;
     float _gapThreshold = 0.25f;
-    public float _dodgeDistance = 2.0f;
+    public float _dodgeDistance = 4.0f;
     public float _dodgeDur = 0.2f;
     float _dodgeTimer = 0.0f;
     Vector3 _dodgeTar;
@@ -161,7 +165,7 @@ public class Movement : MonoBehaviour {
                     transform.rotation = Quaternion.Euler(0, _headSetObj.rotation.eulerAngles.y, 0);
                 }
 
-                if (_movementDevice.GetPressDown(SteamVR_Controller.ButtonMask.Touchpad)) {
+				if (_movementDevice.GetTouchDown(SteamVR_Controller.ButtonMask.Touchpad)) {
                     Vector3 _curDir = new Vector3(_movementDevice.GetAxis().x, 0, _movementDevice.GetAxis().y);
                     if (_pressGapTimer < _gapThreshold) {
                         Vector3 _dodgeLocalDir = (_curDir + _lastDir).normalized;
@@ -286,12 +290,12 @@ public class Movement : MonoBehaviour {
     void InputRegression() {
         if (_inputFactor != 0) {
             if (_inputFactor > 0) {
-                _inputFactor -= Time.deltaTime;
+				_inputFactor -= Time.deltaTime / _walkRunTransitDur;
                 if (_inputFactor <= 0) {
                     _inputFactor = 0;
                 }
             } else {
-                _inputFactor += Time.deltaTime;
+				_inputFactor += Time.deltaTime / _walkRunTransitDur;
                 if (_inputFactor >= 0) {
                     _inputFactor = 0;
                 }
@@ -301,7 +305,7 @@ public class Movement : MonoBehaviour {
 
     void PressingInput() {
         if (_inputFactor < 1) {
-            _inputFactor += Time.deltaTime;
+			_inputFactor += Time.deltaTime / _walkRunTransitDur;
             if (_inputFactor >= 1) {
                 _inputFactor = 1;
             }
