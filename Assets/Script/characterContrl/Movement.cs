@@ -58,10 +58,12 @@ public class Movement : MonoBehaviour {
     Vector3 _lastPress;
     float _pressGapTimer;
     float _gapThreshold = 0.25f;
-    public float _dodgeDistance = 4.0f;
-    public float _dodgeDur = 0.2f;
+    public float _dodgeMaxVelo = 4.0f;
+    float _dodgeVelo;
+    public float _dodgeNormalDur = 0.2f;
+    float _dodgeActualDur;
     float _dodgeTimer = 0.0f;
-    Vector3 _dodgeTar;
+    Vector3 _dodgeDir;
     bool _isDodging = false;
 
 
@@ -75,6 +77,8 @@ public class Movement : MonoBehaviour {
 
     // Use this for initialization
     void Start() {
+        _dodgeActualDur = _dodgeNormalDur;
+        _dodgeVelo = _dodgeMaxVelo;
         _pressGapTimer = _gapThreshold;
         _lastPress = Vector3.zero;
         _isMoveUnderControl = true;
@@ -146,11 +150,13 @@ public class Movement : MonoBehaviour {
                 if (_isDodging) {
                     _inputFactor = 0.0f;
                     Debug.Log("Dodge!!");
-                    transform.position = Vector3.MoveTowards(transform.position, _dodgeTar, _dodgeDistance * Time.deltaTime / _dodgeDur);
+                    _dodgeVelo -= _dodgeMaxVelo * Time.deltaTime / _dodgeActualDur;
+
                     _dodgeTimer += Time.deltaTime;
-                    if (_dodgeTimer >= _dodgeDur) {
+                    if (_dodgeTimer >= _dodgeActualDur) {
                         _isDodging = false;
                         _dodgeTimer = 0.0f;
+                        _dodgeVelo = _dodgeMaxVelo;
                         Debug.Log("Finish Dodging");
                     }
                 } else if (_lockingDevice.GetPress(SteamVR_Controller.ButtonMask.Trigger) || _isCamStatic) {
@@ -169,14 +175,16 @@ public class Movement : MonoBehaviour {
                     Vector3 _curDir = new Vector3(_movementDevice.GetAxis().x, 0, _movementDevice.GetAxis().y);
                     if (_pressGapTimer < _gapThreshold) {
                         Vector3 _dodgeLocalDir = (_curDir + _lastDir).normalized;
-                        Vector3 _dodgeWorldDir = Quaternion.FromToRotation(Vector3.forward, _dodgeLocalDir) * transform.forward;
-                        _dodgeTar = transform.position + _dodgeWorldDir * _dodgeDistance;
+                        _dodgeDir = Quaternion.FromToRotation(Vector3.forward, _dodgeLocalDir) * transform.forward;
                         _isDodging = true;
+                        _inputFactor = 0.0f;
                         if (_dodgeLocalDir.z > 0) {
                             PlayDodgeForwardAnim();
-                            transform.rotation = Quaternion.LookRotation(_dodgeWorldDir, Vector3.up);
+                            transform.rotation = Quaternion.LookRotation(_dodgeDir, Vector3.up);
+                            _dodgeActualDur = _dodgeNormalDur;
                         } else {
                             PlayDodgeBackwardAnim();
+                            _dodgeActualDur = _dodgeNormalDur / 2.0f;
                         }
                     }
                     _pressGapTimer = 0.0f;
@@ -185,6 +193,9 @@ public class Movement : MonoBehaviour {
             }
 
             _myRb.velocity = transform.forward * _moveSpeed * _inputFactor;
+            if (_isDodging) {
+                _myRb.velocity += _dodgeVelo * _dodgeDir;
+            }
             if (_inputFactor != 0) {
                 PlayRunAnim();
             } else {
