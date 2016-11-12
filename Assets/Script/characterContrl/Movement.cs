@@ -6,6 +6,7 @@ public class Movement : MonoBehaviour {
     public Transform _lockViewController;
     public Transform _vrObj;
     public Transform _headSetObj;
+	public Transform _bodyChild;
 
     SteamVR_TrackedObject _movementTrackedObj;
     SteamVR_Controller.Device _movementDevice;
@@ -13,11 +14,9 @@ public class Movement : MonoBehaviour {
     SteamVR_TrackedObject _lockingObj;
     SteamVR_Controller.Device _lockingDevice;
 
-    float _rotTime = 0.5f;
     public float _moveSpeed = 12.0f;
     float _radius = 5.0f;
 
-    Vector3 _myForward;
     Vector3 _lastDir;
 
     public float _centerYBias = 1.0f;
@@ -96,7 +95,6 @@ public class Movement : MonoBehaviour {
         _camBestPosOffsetFactor = 0.05f;
         _centerBias = new Vector3(0, _centerYBias, 0);
         _lastDir = Vector3.zero;
-        _myForward = GetMyForwardWithoutY(transform.position, _headSetObj.position);
         _movementTrackedObj = _movementController.GetComponent<SteamVR_TrackedObject>();
         _lockingObj = _lockViewController.GetComponent<SteamVR_TrackedObject>();
 
@@ -150,7 +148,7 @@ public class Movement : MonoBehaviour {
                 if (_isDodging) {
                     _inputFactor = 0.0f;
                     Debug.Log("Dodge!!");
-                    _dodgeVelo -= _dodgeMaxVelo * Time.deltaTime / _dodgeActualDur;
+                    //_dodgeVelo -= _dodgeMaxVelo * Time.deltaTime / _dodgeActualDur;
 
                     _dodgeTimer += Time.deltaTime;
                     if (_dodgeTimer >= _dodgeActualDur) {
@@ -174,7 +172,7 @@ public class Movement : MonoBehaviour {
 				if (_movementDevice.GetTouchDown(SteamVR_Controller.ButtonMask.Touchpad)) {
                     Vector3 _curDir = new Vector3(_movementDevice.GetAxis().x, 0, _movementDevice.GetAxis().y);
                     if (_pressGapTimer < _gapThreshold) {
-                        Vector3 _dodgeLocalDir = (_curDir + _lastDir).normalized;
+						Vector3 _dodgeLocalDir = (_curDir + _lastPress).normalized;
                         _dodgeDir = Quaternion.FromToRotation(Vector3.forward, _dodgeLocalDir) * transform.forward;
                         _isDodging = true;
                         _inputFactor = 0.0f;
@@ -188,7 +186,7 @@ public class Movement : MonoBehaviour {
                         }
                     }
                     _pressGapTimer = 0.0f;
-                    _lastDir = _curDir;
+					_lastPress = _curDir;
                 }
             }
 
@@ -203,8 +201,21 @@ public class Movement : MonoBehaviour {
             }
 
             if (!_isCamStatic) {
-                if (Vector3.Distance(_headSetObj.position, transform.position) < _lerpEndDistance && _curMode == ViewMode.Transition && _targetMode == ViewMode.FirstPerson) {
-                    _curMode = ViewMode.FirstPerson;
+                if (_curMode == ViewMode.Transition && _targetMode == ViewMode.FirstPerson) {
+					if (Vector3.Distance (_headSetObj.position, transform.position) < _lerpEndDistance) {
+						_curMode = ViewMode.FirstPerson;
+					}
+					RaycastHit _hitInfo;
+					if (Physics.Raycast (_headSetObj.position, (transform.position - _headSetObj.position).normalized, out _hitInfo, (transform.position - _headSetObj.position).magnitude)) {
+						if (_hitInfo.collider.gameObject.tag == Tags.Player) {
+							Vector3 _disablePoint = _hitInfo.point + (_headSetObj.position - _hitInfo.point).normalized * 0.3f;
+							if (Vector3.Distance(_disablePoint, _headSetObj.position) < 0.01f){
+								foreach (Transform _renderChild in _bodyChild) {
+									_renderChild.gameObject.SetActive (false);
+								}
+							}
+						}
+					}
                     //Debug.Log("Yeah");
                 }
             }
@@ -214,7 +225,7 @@ public class Movement : MonoBehaviour {
             if (!_isCamStatic) {
                 if (_curMode != ViewMode.FirstPerson) {
                     //transform.rotation = Quaternion.Euler(0, _tarRot.rotation.eulerAngles.y, 0); // sync rot for both 3rd cam and 1st cam
-                    Vector3 _idealHeadSetPos = -_headSetObj.forward * _radius + transform.position + _centerBias;
+                    Vector3 _idealHeadSetPos = -_headSetObj.forward * _radius + transform.position;
                     // the ideal position for 3rd person camera's position when rotation head, ideal here means without obstacle
                     float _realRadius = Vector3.Distance(transform.position, _headSetObj.position);
                     //radius from current frame, which is used for calculating next pre-position before lerping along the line
@@ -225,7 +236,7 @@ public class Movement : MonoBehaviour {
                         //collider raycast for getting point infomation when collision happens
                         //this point is where the camera is going to move to for avoiding obstacles
                         RaycastHit _hitInfo;
-						if (Physics.Raycast(transform.position, (_idealHeadSetPos - _centerBias - transform.position).normalized, out _hitInfo, (_idealHeadSetPos - transform.position).magnitude)) {
+						if (Physics.Raycast(transform.position, (_idealHeadSetPos - transform.position).normalized, out _hitInfo, (_idealHeadSetPos - transform.position).magnitude)) {
                             _camBestPos = _hitInfo.point + (transform.position - _idealHeadSetPos) * _camBestPosOffsetFactor;
                             if (_hitInfo.collider.tag == Tags.Ground) {
                                 // it is hitting floor, floor is unique, cuz we don't want player can see from the bottom of the floor, so when hitting with floor
@@ -263,6 +274,8 @@ public class Movement : MonoBehaviour {
         }
     }
 
+
+
     bool AngleLessThanThreshold(Vector3 _dir) {
         if (Vector3.Angle(_dir, _lastDir) < 20) {
             return true;
@@ -280,12 +293,6 @@ public class Movement : MonoBehaviour {
         } else {
             return false;
         }
-    }
-
-    Vector3 GetMyForwardWithoutY(Vector3 target, Vector3 origin) {
-        Vector3 _forward3D = target - origin;
-        _forward3D.y = 0;
-        return _forward3D;
     }
 
     Vector3 LerpToTarget(Vector3 _origin, Vector3 _tar) {
@@ -343,10 +350,15 @@ public class Movement : MonoBehaviour {
         _targetMode = (_targetMode == ViewMode.ThirdPerson) ? ViewMode.FirstPerson : ViewMode.ThirdPerson;
         if (_targetMode == ViewMode.ThirdPerson) {
             _curMode = ViewMode.ThirdPerson;
+			foreach (Transform _renderChild in _bodyChild) {
+				_renderChild.gameObject.SetActive (true);
+			}
         } else {
             _curMode = ViewMode.Transition;
         }
     }
+
+
 
     public void MakeCamStatic() {
         _isCamStatic = true;
@@ -358,6 +370,8 @@ public class Movement : MonoBehaviour {
     }
 
 
+
+	// 3th personal view with out move
     public void TurnOffMoveControll() {
         _isMoveUnderControl = false;
     }
@@ -373,6 +387,12 @@ public class Movement : MonoBehaviour {
             return false;
         }
     }
+
+	//Vector3 GetMyForwardWithoutY(Vector3 target, Vector3 origin) {
+	//    Vector3 _forward3D = target - origin;
+	//    _forward3D.y = 0;
+	//    return _forward3D;
+	//}
 
     //bool LessThenThreshold(Vector3 _dir) {
     //    if (Vector3.Angle(Vector3.forward, _dir) < 45.0f) {
