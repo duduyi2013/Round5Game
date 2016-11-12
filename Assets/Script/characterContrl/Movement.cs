@@ -181,6 +181,11 @@ public class Movement : MonoBehaviour {
             }
 
             _myRb.velocity = transform.forward * _moveSpeed * _inputFactor;
+            if (_inputFactor != 0) {
+                PlayRunAnim();
+            } else {
+                PlayStandAnim();
+            }
 
             if (!_isCamStatic) {
                 if (Vector3.Distance(_headSetObj.position, transform.position) < _lerpEndDistance && _curMode == ViewMode.Transition && _targetMode == ViewMode.FirstPerson) {
@@ -311,6 +316,14 @@ public class Movement : MonoBehaviour {
 		anime.SetTrigger ("dogge");
     }
 
+    void PlayRunAnim() {
+        anime.SetBool("run_now", true);
+    }
+
+    void PlayStandAnim() {
+        anime.SetBool("run_now", false);
+    }
+
     public void SwitchPerspective() {
         _targetMode = (_targetMode == ViewMode.ThirdPerson) ? ViewMode.FirstPerson : ViewMode.ThirdPerson;
         if (_targetMode == ViewMode.ThirdPerson) {
@@ -341,10 +354,8 @@ public class Movement : MonoBehaviour {
     public bool IsRunning() {
         if (_inputFactor != 0) {
             return true;
-			anime.SetBool ("run_now",true);
         } else {
             return false;
-			anime.SetBool ("run_now",false);
         }
     }
 

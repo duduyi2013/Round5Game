@@ -1,6 +1,8 @@
 *
 !/ProjectSettings/
 !/ProjectSettings/*
+/ProjectSettings/ProjectVersion.txt
+/ProjectSettings/ProjectSettings.asset
 !/Assets/
 !/Assets/Script/
 !/Assets/Script/characterContrl/
