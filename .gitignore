@@ -7,4 +7,6 @@
 !/Assets/Script/
 !/Assets/Script/characterContrl/
 !/Assets/Script/characterContrl/*
+!/Assets/Script/fightControl/
+!/Assets/Script/fightControl/*
 !.gitignore
