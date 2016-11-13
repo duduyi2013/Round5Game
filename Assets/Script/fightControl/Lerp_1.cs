@@ -2,7 +2,7 @@
 using System.Collections;
 
 public class Lerp_1 : MonoBehaviour {
-    GameObject target;
+    public GameObject target;
     float chasing_speed;
     float chasing_acc;
     float rushing_speed;
@@ -13,11 +13,11 @@ public class Lerp_1 : MonoBehaviour {
     float _timer_for_attacking;
 	// Use this for initialization
 	void Start () { 
-        target = GameObject.FindGameObjectWithTag("target");
-        chasing_speed = 1;
-        chasing_acc = 1;
-        rushing_speed = 5;
-        rushing_acc = 1;
+        //target = GameObject.FindGameObjectWithTag("target");
+        chasing_speed = 5;
+        chasing_acc = 10;
+        rushing_speed = 25;
+        rushing_acc = 10;
         startTrackinLastFrameForAttacking = false;
         _timer_for_attacking = 0;
         attacking_status = 1;
@@ -43,6 +43,7 @@ public class Lerp_1 : MonoBehaviour {
         //this.GetComponent<Rigidbody>().velocity += chasing_acc * _tmp2 * Time.fixedDeltaTime;
         //this.GetComponent<Rigidbody>().velocity = GetComponent<Rigidbody>().velocity.normalized * chasing_speed;
         //Chasing3();
+		this.transform.position = new Vector3(this.transform.position.x,target.transform.position.y,this.transform.position.z);
         Attacking();
         
     }
@@ -115,7 +116,7 @@ public class Lerp_1 : MonoBehaviour {
                 //Debug.Log("aaa");
                 _timer_for_attacking = 0;
             }
-            else if(_timer_for_attacking > 5 && attacking_status == 1 && _relativePosition.magnitude < 4)
+            else if(_timer_for_attacking > 5 && attacking_status == 1 && _relativePosition.magnitude < 20)
             {
                 attacking_status = 2;
                 Chasing2();
