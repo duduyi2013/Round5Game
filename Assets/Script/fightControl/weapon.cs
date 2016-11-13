@@ -9,12 +9,13 @@ public class weapon : MonoBehaviour
     float factor_force, factor_resi_n, factor_resi_tau, weaponRadius;
     void Start()
     {
-        centralPoint = GameObject.FindGameObjectWithTag("CentralPoint");
+        //centralPoint = GameObject.FindGameObjectWithTag("CentralPoint");
         factor_force = 20;
         factor_resi_n = 6;
         factor_resi_tau = 5;
-        PublicVariables.weaponRadius = 1; // NTC1
-        weaponRadius = PublicVariables.weaponRadius;
+        //PublicVariables.weaponRadius = 1; // NTC1
+        //weaponRadius = PublicVariables.weaponRadius;
+        weaponRadius = 1;
     }
 
     // Update is called once per frame
@@ -25,6 +26,10 @@ public class weapon : MonoBehaviour
     void FixedUpdate()
     {
         Gettingback(Time.fixedDeltaTime);
+    }
+    public void UpdateCentralPoint(GameObject cP)
+    {
+        centralPoint = cP;
     }
     void Gettingback(float deltaTime)
     {
@@ -39,14 +44,14 @@ public class weapon : MonoBehaviour
         // resistance on tau direction
         GetComponent<Rigidbody>().velocity += -Vector3.Dot(_relativeVelocity, _tau_direction) * factor_resi_tau * _tau_direction * deltaTime;
         //force for spin
-        //GetComponent<Rigidbody>().velocity += -Vector3.Cross(_relativeVelocity, GetComponent<Rigidbody>().angularVelocity) * 0.1f * deltaTime;
+        //GetComponent<Rigidbody>().velocity += -Vector3.Cross(_relativeV elocity, GetComponent<Rigidbody>().angularVelocity) * 0.1f * deltaTime;
     }
     void OnTriggerEnter(Collider c)
     {
         if (c.transform.tag == "Controller")
         {
             Debug.Log(c.gameObject.GetComponent<Controller_possition_tracking>().velocity.magnitude);
-            Vector3 _reletive_speed = (c.gameObject.GetComponent<Controller_possition_tracking>().velocity * 10 - GetComponent<Rigidbody>().velocity);
+            Vector3 _reletive_speed = (c.gameObject.GetComponent<Controller_possition_tracking>().velocity  * 10 - GetComponent<Rigidbody>().velocity);
             Vector3 _reletive_position = (c.gameObject.transform.position - this.transform.position);
             Vector3 _angularVelocityDirection = Vector3.Cross(_reletive_position, _reletive_speed).normalized;
             float _angularVelocityMagnitude = Vector3.Cross(_reletive_position, _reletive_speed).magnitude / _reletive_position.magnitude; 
