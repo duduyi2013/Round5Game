@@ -169,7 +169,7 @@ public class Movement : MonoBehaviour {
                     transform.rotation = Quaternion.Euler(0, _headSetObj.rotation.eulerAngles.y, 0);
                 }
 
-				if (_movementDevice.GetTouchDown(SteamVR_Controller.ButtonMask.Touchpad)) {
+				if (_movementDevice.GetTouchDown(SteamVR_Controller.ButtonMask.Touchpad) && !_isDodging) {
                     Vector3 _curDir = new Vector3(_movementDevice.GetAxis().x, 0, _movementDevice.GetAxis().y);
                     if (_pressGapTimer < _gapThreshold) {
 						Vector3 _dodgeLocalDir = (_curDir + _lastPress).normalized;

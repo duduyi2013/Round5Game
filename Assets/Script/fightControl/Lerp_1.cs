@@ -138,7 +138,7 @@ public class Lerp_1 : MonoBehaviour {
         _relativePositionOfLastFrame = target.transform.position - this.transform.position;
         startTrackinLastFrameForAttacking = true;
         _timer_for_attacking += Time.fixedDeltaTime;
-        Debug.Log(_timer_for_attacking);
+        //Debug.Log(_timer_for_attacking);
         //Debug.Log(attacking_status);
     }
 
