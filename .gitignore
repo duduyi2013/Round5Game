@@ -3,6 +3,7 @@
 !/ProjectSettings/*
 /ProjectSettings/ProjectVersion.txt
 /ProjectSettings/ProjectSettings.asset
+!/JoeTODOlist.txt
 !/Assets/
 !/Assets/Script/
 !/Assets/Script/characterContrl/

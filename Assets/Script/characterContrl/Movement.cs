@@ -14,7 +14,7 @@ public class Movement : MonoBehaviour {
     SteamVR_TrackedObject _lockingObj;
     SteamVR_Controller.Device _lockingDevice;
 
-    public float _moveSpeed = 12.0f;
+    public float _moveSpeed = 7.0f;
     float _radius = 5.0f;
 
     Vector3 _lastDir;
@@ -57,13 +57,29 @@ public class Movement : MonoBehaviour {
     Vector3 _lastPress;
     float _pressGapTimer;
     float _gapThreshold = 0.25f;
-    public float _dodgeMaxVelo = 4.0f;
+    public float _dodgeMaxVelo = 8.0f;
     float _dodgeVelo;
-    public float _dodgeNormalDur = 0.2f;
+    public float _dodgeNormalDur = 1f;
     float _dodgeActualDur;
     float _dodgeTimer = 0.0f;
     Vector3 _dodgeDir;
     bool _isDodging = false;
+
+    //attacking
+    bool _isPreparing = false;
+    bool _isAttacking = false;
+    float _prepareTime = 1.5f;
+    float _prepareTimer = 0.0f;
+    public GameObject _attackBallPrefab;
+    public float _ballBottomHeight = 2.2f;
+    float _ballCenterHeight;
+    float _ballPosRatio = 5.0f / 6.0f;
+    GameObject _myAttackingBall;
+    public GameObject _ballCenterObj;
+
+
+    //debugging
+    public bool _isJinPC = false;
 
 
 	//jin perimeter set up ++++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -76,6 +92,7 @@ public class Movement : MonoBehaviour {
 
     // Use this for initialization
     void Start() {
+        _ballCenterHeight = _ballBottomHeight + _attackBallPrefab.transform.lossyScale.y / 2;
         _dodgeActualDur = _dodgeNormalDur;
         _dodgeVelo = _dodgeMaxVelo;
         _pressGapTimer = _gapThreshold;
@@ -98,10 +115,12 @@ public class Movement : MonoBehaviour {
         _movementTrackedObj = _movementController.GetComponent<SteamVR_TrackedObject>();
         _lockingObj = _lockViewController.GetComponent<SteamVR_TrackedObject>();
 
-		//
-		anime = playerAni.GetComponent<Animator>();
+        //
+        if (_isJinPC) {
+            anime = playerAni.GetComponent<Animator>();
+        }
     }
-
+    
     // Update is called once per frame
     void Update() {
         _pressGapTimer += Time.deltaTime;
@@ -139,10 +158,43 @@ public class Movement : MonoBehaviour {
                 _movementDevice = SteamVR_Controller.Input((int)_movementTrackedObj.index);
                 _lockingDevice = SteamVR_Controller.Input((int)_lockingObj.index);
 
-                if (_movementDevice.GetPress(SteamVR_Controller.ButtonMask.Touchpad)) {
+                if (_movementDevice.GetPress(SteamVR_Controller.ButtonMask.Touchpad) && !(_isPreparing || _isAttacking)) {
                     PressingInput();
                     _isPressing = true;
                     //transform.Translate(transform.forward * Time.deltaTime * _moveSpeed, Space.World);
+                }
+
+                //Attack
+                if (!_isCamStatic) {
+                    if (_movementDevice.GetPressDown(SteamVR_Controller.ButtonMask.Trigger) && !_isAttacking) {
+                        _myAttackingBall = Instantiate(_attackBallPrefab, GetBallPosition(), Quaternion.identity) as GameObject;
+                        //start playing preparing attacking animation
+                    }
+                    if (_movementDevice.GetPress(SteamVR_Controller.ButtonMask.Trigger) && !_isAttacking) {
+                        _isPreparing = true;
+                        _prepareTimer += Time.deltaTime;
+                    } else if (_movementDevice.GetPressUp(SteamVR_Controller.ButtonMask.Trigger)) {
+                        if (_isPreparing) {
+                            _isPreparing = false;
+                            _prepareTimer = 0.0f;
+                            if (_isAttacking) {
+                                //play anim for holding the cannon
+                            } else {
+                                //play anim for putting back the cannon, and maybe ball disappear anim
+                            }
+                        }
+                    }
+                    if (_prepareTimer >= _prepareTime && _isPreparing) {
+                        _isAttacking = true;
+                    }
+
+                    if (_isPreparing || _isAttacking) {
+                        _ballCenterObj.transform.position = GetBallPosition();
+
+
+                        // substitute lucas's implementation with this
+                        _myAttackingBall.transform.position = _ballCenterObj.transform.position;
+                    }
                 }
 
                 if (_isDodging) {
@@ -169,7 +221,7 @@ public class Movement : MonoBehaviour {
                     transform.rotation = Quaternion.Euler(0, _headSetObj.rotation.eulerAngles.y, 0);
                 }
 
-				if (_movementDevice.GetTouchDown(SteamVR_Controller.ButtonMask.Touchpad) && !_isDodging) {
+				if (_movementDevice.GetTouchDown(SteamVR_Controller.ButtonMask.Touchpad) && !_isDodging && !(_isPreparing || _isAttacking)) {
                     Vector3 _curDir = new Vector3(_movementDevice.GetAxis().x, 0, _movementDevice.GetAxis().y);
                     if (_pressGapTimer < _gapThreshold) {
 						Vector3 _dodgeLocalDir = (_curDir + _lastPress).normalized;
@@ -274,7 +326,12 @@ public class Movement : MonoBehaviour {
         }
     }
 
-
+    Vector3 GetBallPosition() {
+        Vector3 _ballPosUnfixedY = transform.position - (transform.position - _camBestPos) * _ballPosRatio;
+        _ballPosUnfixedY.y = _ballCenterHeight;
+        Vector3 _ballPosFixedY = _ballPosUnfixedY;
+        return _ballPosFixedY;
+    }
 
     bool AngleLessThanThreshold(Vector3 _dir) {
         if (Vector3.Angle(_dir, _lastDir) < 20) {
@@ -331,19 +388,27 @@ public class Movement : MonoBehaviour {
     }
 
     void PlayDodgeForwardAnim() {
-		anime.SetTrigger ("flip");
+        if (_isJinPC) {
+            anime.SetTrigger("flip");
+        }
     }
 
     void PlayDodgeBackwardAnim() {
-		anime.SetTrigger ("dogge");
+        if (_isJinPC) {
+            anime.SetTrigger ("dogge");
+        }
     }
 
     void PlayRunAnim() {
-        anime.SetBool("run_now", true);
+        if (_isJinPC) {
+            anime.SetBool("run_now", true);
+        }
     }
 
     void PlayStandAnim() {
-        anime.SetBool("run_now", false);
+        if (_isJinPC) {
+            anime.SetBool("run_now", false);
+        }
     }
 
     public void SwitchPerspective() {
