@@ -48,10 +48,8 @@ public class weapon : MonoBehaviour
     }
     void OnTriggerEnter(Collider c)
     {
-        Debug.Log(c.transform.tag);
         if (c.transform.tag == "Controller")
         {
-            Debug.Log(c.gameObject.GetComponent<Controller_possition_tracking>().velocity.magnitude);
             Vector3 _reletive_speed = (c.gameObject.GetComponent<Controller_possition_tracking>().velocity  * 10 - GetComponent<Rigidbody>().velocity);
             Vector3 _reletive_position = (c.gameObject.transform.position - this.transform.position);
             Vector3 _angularVelocityDirection = Vector3.Cross(_reletive_position, _reletive_speed).normalized;
