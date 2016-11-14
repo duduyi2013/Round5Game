@@ -222,7 +222,7 @@ public class Movement : MonoBehaviour {
                         _dodgeVelo = _dodgeMaxVelo;
                         Debug.Log("Finish Dodging");
                     }
-                } else if (_lockingDevice.GetPress(SteamVR_Controller.ButtonMask.Trigger) || _isCamStatic) {
+                } else if (_lockingDevice.GetPress(SteamVR_Controller.ButtonMask.Trigger)) {
                     if (_movementDevice.GetTouch(SteamVR_Controller.ButtonMask.Touchpad)) {
                         Vector3 _dir = new Vector3(_movementDevice.GetAxis().x, 0, _movementDevice.GetAxis().y);
                         if (AngleLessThanThreshold(_dir)) {
@@ -230,7 +230,7 @@ public class Movement : MonoBehaviour {
                         }
                         _lastDir = _dir;
                     }
-                } else {
+                } else if (!_isCamStatic) {
                     transform.rotation = Quaternion.Euler(0, _headSetObj.rotation.eulerAngles.y, 0);
                 }
 
@@ -238,7 +238,10 @@ public class Movement : MonoBehaviour {
                     Vector3 _curDir = new Vector3(_movementDevice.GetAxis().x, 0, _movementDevice.GetAxis().y);
                     if (_pressGapTimer < _gapThreshold) {
 						Vector3 _dodgeLocalDir = (_curDir + _lastPress).normalized;
-                        _dodgeDir = Quaternion.FromToRotation(Vector3.forward, _dodgeLocalDir) * _headSetObj.forward;
+
+                        Vector3 _headsetForwardWithoutY = _headSetObj.forward;
+                        _headsetForwardWithoutY.y = 0.0f;
+                        _dodgeDir = Quaternion.FromToRotation(Vector3.forward, _dodgeLocalDir) * _headsetForwardWithoutY;
                         _isDodging = true;
                         _inputFactor = 0.0f;
                         if (Vector3.Dot(_dodgeDir, transform.forward) > 0) {
@@ -321,8 +324,8 @@ public class Movement : MonoBehaviour {
                         //bias the local position of camera by changing the position of camera's parent
                         _vrObj.position += LerpToTarget(_nextFramePrePos, _camBestPos) - _headSetObj.position;
                     } else {
-						_vrObj.position += LerpToTarget (_headSetObj.position, _camBestPos) - _headSetObj.position;
-                        //_vrObj.position += _camBestPos - _headSetObj.position;
+						//_vrObj.position += LerpToTarget (_headSetObj.position, _camBestPos) - _headSetObj.position;
+                        _vrObj.position += _camBestPos - _headSetObj.position;
                     }
                 }
 
