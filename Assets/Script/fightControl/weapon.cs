@@ -7,18 +7,19 @@ public class weapon : MonoBehaviour
     GameObject centralPoint;
     // Use this for initialization
     float factor_force, factor_resi_n, factor_resi_tau, weaponRadius;
-    bool is_hitting_out;
+    bool is_hitting_out, already_hit;
     float local_timer;
     void Start()
     {
         //centralPoint = GameObject.FindGameObjectWithTag("CentralPoint");
-        factor_force = 20;
-        factor_resi_n = 6;
+        factor_force = 100;
+        factor_resi_n = 15;
         factor_resi_tau = 5;
         //PublicVariables.weaponRadius = 1; // NTC1
         //weaponRadius = PublicVariables.weaponRadius;
         weaponRadius = 1;
-        is_hitting_out = 0;
+        is_hitting_out = false;
+		already_hit = false;
         
     }
 
@@ -54,14 +55,20 @@ public class weapon : MonoBehaviour
         }
         else if (!is_hitting_out)
         {
-            GetComponent<Rigidbody>().velocity += _relativePosition.magnitude * factor_force * _n_direction * deltaTime;
+
+			GetComponent<Rigidbody>().velocity += _relativePosition.magnitude * factor_force * _n_direction * deltaTime;
+			// resistance on n direction
+			GetComponent<Rigidbody>().velocity += -Vector3.Dot(_relativeVelocity, _n_direction) * factor_resi_n * _n_direction * deltaTime ;
+			// resistance on tau direction
+			GetComponent<Rigidbody>().velocity += -Vector3.Dot(_relativeVelocity, _tau_direction) * factor_resi_tau * _tau_direction * deltaTime ;
         }
         else if (is_hitting_out)
         {
-            local_timer += delegate;
-            if (local_timer > 2 || Vector3.Dot(this.GetComponent<Rigidbody>().velocity, _relativePosition) < 0)
+			local_timer += deltaTime;
+			if (local_timer > 2 || already_hit)
             {
                 is_hitting_out = false;
+				already_hit = false;
             }
         }
     }
