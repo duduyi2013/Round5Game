@@ -10,7 +10,7 @@ public class weapon : MonoBehaviour
     void Start()
     {
         //centralPoint = GameObject.FindGameObjectWithTag("CentralPoint");
-        factor_force = 20;
+        factor_force = 5;
         factor_resi_n = 6;
         factor_resi_tau = 5;
         //PublicVariables.weaponRadius = 1; // NTC1
@@ -34,7 +34,7 @@ public class weapon : MonoBehaviour
     void Gettingback(float deltaTime)
     {
         Vector3 _relativePosition = this.transform.position - centralPoint.transform.position;
-        Vector3 _relativeVelocity = GetComponent<Rigidbody>().velocity - centralPoint.GetComponent<Rigidbody>().velocity;
+        Vector3 _relativeVelocity = GetComponent<Rigidbody>().velocity;// - centralPoint.GetComponent<Rigidbody>().velocity;
         Vector3 _n_direction = -_relativePosition.normalized;
         Vector3 _tau_direction = Vector3.Cross(_n_direction, Vector3.Cross(_relativeVelocity, _n_direction)).normalized;
         // force for coming back
@@ -48,6 +48,7 @@ public class weapon : MonoBehaviour
     }
     void OnTriggerEnter(Collider c)
     {
+        Debug.Log(c.transform.tag);
         if (c.transform.tag == "Controller")
         {
             Debug.Log(c.gameObject.GetComponent<Controller_possition_tracking>().velocity.magnitude);

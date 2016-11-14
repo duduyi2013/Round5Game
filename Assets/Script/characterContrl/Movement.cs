@@ -1,5 +1,6 @@
 ﻿using UnityEngine;
 using System.Collections;
+using System;
 
 public class Movement : MonoBehaviour {
     public Transform _movementController;
@@ -19,17 +20,6 @@ public class Movement : MonoBehaviour {
 
     Vector3 _lastDir;
 
-    public float _centerYBias = 1.0f;
-    Vector3 _centerBias;
-    Vector3 _camBestPos;
-    Vector3 _nextFramePrePos;
-    float _camBestPosOffsetFactor;
-    bool _isFlashingToFloor;
-
-    float _lerpEndDistance = 0.01f;
-    float _lerpEndRate = 0.005f;
-    public float _lerpTime = 2f;
-
     enum ViewMode {
         FirstPerson,
         ThirdPerson,
@@ -41,6 +31,19 @@ public class Movement : MonoBehaviour {
 
     ViewMode _targetMode;
     ViewMode _curMode;
+
+    //camera 
+    public float _centerYBias = 1.0f;
+    Vector3 _centerBias;
+    Vector3 _camBestPos;
+    Vector3 _nextFramePrePos;
+    float _camBestPosOffsetFactor;
+    bool _isFlashingToFloor;
+
+    float _lerpEndDistance = 0.01f;
+    float _lerpEndRate = 0.005f;
+    public float _lerpTime = 2f;
+    int _ballLayerMask;
 
 	//walking
     float _inputFactor;
@@ -73,7 +76,7 @@ public class Movement : MonoBehaviour {
     public GameObject _attackBallPrefab;
     public float _ballBottomHeight = 2.2f;
     float _ballCenterHeight;
-    float _ballPosRatio = 5.0f / 6.0f;
+    public float _ballPosRatio = 5.0f / 6.0f;
     GameObject _myAttackingBall;
     public GameObject _ballCenterObj;
 
@@ -114,6 +117,7 @@ public class Movement : MonoBehaviour {
         _lastDir = Vector3.zero;
         _movementTrackedObj = _movementController.GetComponent<SteamVR_TrackedObject>();
         _lockingObj = _lockViewController.GetComponent<SteamVR_TrackedObject>();
+        _ballLayerMask = ~(1 << LayerMask.NameToLayer(Layers.Ball));
 
         //
         if (_isJinPC) {
@@ -150,6 +154,13 @@ public class Movement : MonoBehaviour {
         //    Debug.Log("CurMode: " + _curMode + "  Target: " + _targetMode);
         //}
 
+        //if (_isPreparing) {
+        //    Debug.Log("Preparing");
+        //}
+        //if (_isAttacking) {
+        //    Debug.Log("Attacking");
+        //}
+
         _isPressing = false;
         //character rotation and movement, 3rd camera rotate around character
         if (_movementController.gameObject.activeSelf && _lockViewController.gameObject.activeSelf) {
@@ -168,6 +179,7 @@ public class Movement : MonoBehaviour {
                 if (!_isCamStatic) {
                     if (_movementDevice.GetPressDown(SteamVR_Controller.ButtonMask.Trigger) && !_isAttacking) {
                         _myAttackingBall = Instantiate(_attackBallPrefab, GetBallPosition(), Quaternion.identity) as GameObject;
+                        _myAttackingBall.GetComponent<weapon>().UpdateCentralPoint(_ballCenterObj);
                         //start playing preparing attacking animation
                     }
                     if (_movementDevice.GetPress(SteamVR_Controller.ButtonMask.Trigger) && !_isAttacking) {
@@ -180,6 +192,8 @@ public class Movement : MonoBehaviour {
                             if (_isAttacking) {
                                 //play anim for holding the cannon
                             } else {
+                                Destroy(_myAttackingBall);
+                                _myAttackingBall = null;
                                 //play anim for putting back the cannon, and maybe ball disappear anim
                             }
                         }
@@ -190,10 +204,9 @@ public class Movement : MonoBehaviour {
 
                     if (_isPreparing || _isAttacking) {
                         _ballCenterObj.transform.position = GetBallPosition();
-
-
+                                                
                         // substitute lucas's implementation with this
-                        _myAttackingBall.transform.position = _ballCenterObj.transform.position;
+                        //_myAttackingBall.transform.position = _ballCenterObj.transform.position;
                     }
                 }
 
@@ -225,10 +238,10 @@ public class Movement : MonoBehaviour {
                     Vector3 _curDir = new Vector3(_movementDevice.GetAxis().x, 0, _movementDevice.GetAxis().y);
                     if (_pressGapTimer < _gapThreshold) {
 						Vector3 _dodgeLocalDir = (_curDir + _lastPress).normalized;
-                        _dodgeDir = Quaternion.FromToRotation(Vector3.forward, _dodgeLocalDir) * transform.forward;
+                        _dodgeDir = Quaternion.FromToRotation(Vector3.forward, _dodgeLocalDir) * _headSetObj.forward;
                         _isDodging = true;
                         _inputFactor = 0.0f;
-                        if (_dodgeLocalDir.z > 0) {
+                        if (Vector3.Dot(_dodgeDir, transform.forward) > 0) {
                             PlayDodgeForwardAnim();
                             transform.rotation = Quaternion.LookRotation(_dodgeDir, Vector3.up);
                             _dodgeActualDur = _dodgeNormalDur;
@@ -288,7 +301,7 @@ public class Movement : MonoBehaviour {
                         //collider raycast for getting point infomation when collision happens
                         //this point is where the camera is going to move to for avoiding obstacles
                         RaycastHit _hitInfo;
-						if (Physics.Raycast(transform.position, (_idealHeadSetPos - transform.position).normalized, out _hitInfo, (_idealHeadSetPos - transform.position).magnitude)) {
+						if (Physics.Raycast(transform.position, (_idealHeadSetPos - transform.position).normalized, out _hitInfo, (_idealHeadSetPos - transform.position).magnitude, _ballLayerMask)) {
                             _camBestPos = _hitInfo.point + (transform.position - _idealHeadSetPos) * _camBestPosOffsetFactor;
                             if (_hitInfo.collider.tag == Tags.Ground) {
                                 // it is hitting floor, floor is unique, cuz we don't want player can see from the bottom of the floor, so when hitting with floor
@@ -328,9 +341,10 @@ public class Movement : MonoBehaviour {
 
     Vector3 GetBallPosition() {
         Vector3 _ballPosUnfixedY = transform.position - (transform.position - _camBestPos) * _ballPosRatio;
-        _ballPosUnfixedY.y = _ballCenterHeight;
-        Vector3 _ballPosFixedY = _ballPosUnfixedY;
-        return _ballPosFixedY;
+        if (_ballPosUnfixedY.y < _ballCenterHeight) {
+            _ballPosUnfixedY.y = _ballCenterHeight;
+        }
+        return _ballPosUnfixedY;
     }
 
     bool AngleLessThanThreshold(Vector3 _dir) {
