@@ -15,6 +15,8 @@ public class Lerp_1 : MonoBehaviour {
     Vector3 _relativePositionOfLastFrame;
     bool startTrackinLastFrameForAttacking;
     float _timer_for_attacking;
+    int times_of_being_hit;
+    Vector3 ball_hit_speed;
     // Use this for initialization
 
 
@@ -25,8 +27,10 @@ public class Lerp_1 : MonoBehaviour {
     public float t2;// 准备时间
     public float t3;// 冲完继续冲的时间
     public float t4;// 休息时间
-    
-	void Start () { 
+    public float t5;// 打中后退的时间
+    public float t6;// 打中停顿时间
+
+    void Start () { 
         //target = GameObject.FindGameObjectWithTag("target");
         chasing_speed = 5;
         chasing_acc = 5;
@@ -43,7 +47,10 @@ public class Lerp_1 : MonoBehaviour {
         t2 = 4;
         t3 = 0.5f;
         t4 = 5;
+        t5 = 0.5f;
+        t6 = 5f;
 		this.transform.position = new Vector3 (this.transform.position.x, target.transform.position.y, this.transform.position.z);
+        times_of_being_hit = 0;
     }
     //Vector3 Vector3.toXZ()
     //{
@@ -59,7 +66,24 @@ public class Lerp_1 : MonoBehaviour {
 
         Monster_behavior();
     }
-
+    public void hit_by_weapon( Vector3 hit_speed)
+    {
+        times_of_being_hit++;
+        if( times_of_being_hit > 2)
+        {
+            change_state(20);
+        }
+        else
+        {
+            ball_hit_speed = hit_speed;
+            this.GetComponent<Rigidbody>().velocity = hit_speed.normalized * 20f;
+            float rotating_angle = Mathf.Acos(Vector3.Dot(hit_speed.normalized, new Vector3(1, 0, 0))) * 180f / 3.14f;
+            Vector3 rotating_axis = Vector3.Cross(new Vector3(1, 0, 0), hit_speed).normalized;
+            this.transform.rotation = Quaternion.AngleAxis(rotating_angle, rotating_axis);
+            change_state(18);
+            _timer_for_attacking = 0;
+        }
+    }
     //void Chasing1()
     //{
     //    Vector3 _relativePosition = target.transform.position - this.transform.position;
@@ -164,6 +188,15 @@ public class Lerp_1 : MonoBehaviour {
             case 8:
                 Shielding();
                 break;
+            case 18:
+                Hit_Back();
+                break;
+            case 19:
+                Being_Attacked();
+                break;
+            case 20:
+                Dead();
+                break;
         }
     }
     void Fast_Chasing()
@@ -189,7 +222,7 @@ public class Lerp_1 : MonoBehaviour {
     }
     void Rest_After_Rushing()
     {
-        Chasing2(0.01f);
+        Chasing3(0.01f, 0.0001f);
     }
     void Idle()
     {
@@ -199,8 +232,23 @@ public class Lerp_1 : MonoBehaviour {
     {
 
     }
+    void Hit_Back()
+    {
+        this.GetComponent<Rigidbody>().velocity -= ball_hit_speed * 0.4f *(Time.fixedDeltaTime / t5);
+
+    }
+    void Being_Attacked()
+    {
+        Chasing3(0.01f, 0.0001f);
+    }
+    void Dead()
+    {
+        Chasing3(0.0001f, 0.000001f);   
+    }
     void change_state(int state)
-    { 
+    {
+        Debug.Log(state);
+
         /* state 1: Fast_Chasing
          * 
          * state 2: Slow_Chasing
@@ -217,9 +265,13 @@ public class Lerp_1 : MonoBehaviour {
          * 
          * state 0: Idle
          * 
-         * state 8: Shielding // not now
+         * state 8: Shielding // not implemented yet
          * 
+         * state 20 Dead
          * 
+         * state 18 Being hit
+         * 
+         * state 19 hitted;
          */
         switch (state)
         {
@@ -238,6 +290,12 @@ public class Lerp_1 : MonoBehaviour {
             case 7:
                 break;
             case 8:
+                break;
+            case 20:
+                break;
+            case 19:
+                break;
+            case 18:
                 break;
         }
         attacking_state = state;
@@ -284,6 +342,7 @@ public class Lerp_1 : MonoBehaviour {
         switch (attacking_state)
         {
             case 0:
+                _timer_for_attacking = 0;
                 if (_dis > dis1)
                 {
                     change_state(1);
@@ -296,7 +355,6 @@ public class Lerp_1 : MonoBehaviour {
                 {
                     change_state(3);
                 }
-                _timer_for_attacking = 0;
                 break;
 
             case 1:
@@ -368,6 +426,20 @@ public class Lerp_1 : MonoBehaviour {
                 if (t > t4)
                 {
                     change_state(0);
+                }
+                break;
+            case 18:
+                if (t > t5)
+                {
+                    change_state(19);
+                    _timer_for_attacking = 0;
+                }
+                break;
+            case 19:
+                if (t > t6)
+                {
+                    change_state(0);
+
                 }
                 break;
         }
