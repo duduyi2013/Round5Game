@@ -17,7 +17,7 @@ public class Controller_possition_tracking : MonoBehaviour
     }
     void FixedUpdate()
     {
-        velocity = (this.transform.position - _lastFramePosition) / Time.fixedDeltaTime;
-        _lastFramePosition = this.transform.position;
+		velocity = (this.transform.localPosition - _lastFramePosition) / Time.fixedDeltaTime;
+		_lastFramePosition = this.transform.localPosition;
     }
 }

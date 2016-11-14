@@ -7,19 +7,22 @@ public class weapon : MonoBehaviour
     GameObject centralPoint;
     // Use this for initialization
     float factor_force, factor_resi_n, factor_resi_tau, weaponRadius;
-    bool is_hitting_out, already_hit;
+	bool is_hitting_out, already_hit_other_things, is_hit;
     float local_timer;
+	Vector3 start_scale;
     void Start()
     {
         //centralPoint = GameObject.FindGameObjectWithTag("CentralPoint");
         factor_force = 100;
         factor_resi_n = 15;
-        factor_resi_tau = 5;
+        factor_resi_tau = 15;
         //PublicVariables.weaponRadius = 1; // NTC1
         //weaponRadius = PublicVariables.weaponRadius;
         weaponRadius = 1;
         is_hitting_out = false;
-		already_hit = false;
+		already_hit_other_things = false;
+		is_hit = false;
+		start_scale = this.transform.localScale;
         
     }
 
@@ -42,7 +45,20 @@ public class weapon : MonoBehaviour
         Vector3 _relativeVelocity = GetComponent<Rigidbody>().velocity;// - centralPoint.GetComponent<Rigidbody>().velocity;
         Vector3 _n_direction = -_relativePosition.normalized;
         Vector3 _tau_direction = Vector3.Cross(_n_direction, Vector3.Cross(_relativeVelocity, _n_direction)).normalized;
-        if (!is_hitting_out && Vector3.Dot( this.GetComponent<Rigidbody>().velocity,_relativePosition)> 0 )
+		if (!is_hit) {
+			GetComponent<Rigidbody>().velocity += _relativePosition.magnitude * factor_force * _n_direction * deltaTime*5;
+			// resistance on n direction
+			GetComponent<Rigidbody>().velocity += -Vector3.Dot(_relativeVelocity, _n_direction) * factor_resi_n * _n_direction * deltaTime*10;
+			// resistance on tau direction
+			GetComponent<Rigidbody>().velocity += -Vector3.Dot(_relativeVelocity, _tau_direction) * factor_resi_tau * _tau_direction * deltaTime*10;
+		}else{
+			if (_relativePosition.magnitude > 20) {
+				this.transform.localScale = start_scale * ((_relativePosition.magnitude + 20) / 40);
+			} else {
+				this.transform.localScale = start_scale;
+			}
+		}
+		if (is_hit && !is_hitting_out && Vector3.Dot( this.GetComponent<Rigidbody>().velocity,_relativePosition)> 0 )
         {
             // force for coming back
             GetComponent<Rigidbody>().velocity += _relativePosition.magnitude * factor_force * _n_direction * deltaTime;
@@ -53,7 +69,7 @@ public class weapon : MonoBehaviour
             //force for spin
             //GetComponent<Rigidbody>().velocity += -Vector3.Cross(_relativeV elocity, GetComponent<Rigidbody>().angularVelocity) * 0.1f * deltaTime;
         }
-        else if (!is_hitting_out)
+		else if (is_hit &&!is_hitting_out)
         {
 
 			GetComponent<Rigidbody>().velocity += _relativePosition.magnitude * factor_force * _n_direction * deltaTime;
@@ -62,19 +78,27 @@ public class weapon : MonoBehaviour
 			// resistance on tau direction
 			GetComponent<Rigidbody>().velocity += -Vector3.Dot(_relativeVelocity, _tau_direction) * factor_resi_tau * _tau_direction * deltaTime ;
         }
-        else if (is_hitting_out)
+		else if (is_hit && is_hitting_out)
         {
 			local_timer += deltaTime;
-			if (local_timer > 2 || already_hit)
+			if (local_timer > 2 || already_hit_other_things)
             {
                 is_hitting_out = false;
-				already_hit = false;
+				already_hit_other_things = false;
             }
         }
+		if ((this.GetComponent<Rigidbody> ().velocity.magnitude + 1) * (_relativePosition.magnitude + 1) < 1.1f) 
+		{
+			is_hit = false;
+			Debug.Log ("wen");
+		}
     }
+	public bool CheckIfItIsBack(){
+		return !is_hit;
+	}
     void OnTriggerEnter(Collider c)
     {
-        if (c.transform.tag == "Controller")
+		if (c.transform.tag == "Controller" && !is_hit)
         {
             Vector3 _reletive_speed = (c.gameObject.GetComponent<Controller_possition_tracking>().velocity  * 10 - GetComponent<Rigidbody>().velocity);
             Vector3 _reletive_position = (c.gameObject.transform.position - this.transform.position);
@@ -84,6 +108,7 @@ public class weapon : MonoBehaviour
             GetComponent<Rigidbody>().angularVelocity += _angularVelocityMagnitude * _angularVelocityDirection * 10;
             is_hitting_out = true;
             local_timer = 0;
+			is_hit = true;
         }
     }      
 }
