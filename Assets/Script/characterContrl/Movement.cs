@@ -1,5 +1,6 @@
 ﻿using UnityEngine;
 using System.Collections;
+using System;
 
 public class Movement : MonoBehaviour {
     public Transform _movementController;
@@ -14,21 +15,10 @@ public class Movement : MonoBehaviour {
     SteamVR_TrackedObject _lockingObj;
     SteamVR_Controller.Device _lockingDevice;
 
-    public float _moveSpeed = 12.0f;
+    public float _moveSpeed = 7.0f;
     float _radius = 5.0f;
 
     Vector3 _lastDir;
-
-    public float _centerYBias = 1.0f;
-    Vector3 _centerBias;
-    Vector3 _camBestPos;
-    Vector3 _nextFramePrePos;
-    float _camBestPosOffsetFactor;
-    bool _isFlashingToFloor;
-
-    float _lerpEndDistance = 0.01f;
-    float _lerpEndRate = 0.005f;
-    public float _lerpTime = 2f;
 
     enum ViewMode {
         FirstPerson,
@@ -41,6 +31,19 @@ public class Movement : MonoBehaviour {
 
     ViewMode _targetMode;
     ViewMode _curMode;
+
+    //camera 
+    public float _centerYBias = 1.0f;
+    Vector3 _centerBias;
+    Vector3 _camBestPos;
+    Vector3 _nextFramePrePos;
+    float _camBestPosOffsetFactor;
+    bool _isFlashingToFloor;
+
+    float _lerpEndDistance = 0.01f;
+    float _lerpEndRate = 0.005f;
+    public float _lerpTime = 2f;
+    int _ballLayerMask;
 
 	//walking
     float _inputFactor;
@@ -57,13 +60,29 @@ public class Movement : MonoBehaviour {
     Vector3 _lastPress;
     float _pressGapTimer;
     float _gapThreshold = 0.25f;
-    public float _dodgeMaxVelo = 4.0f;
+    public float _dodgeMaxVelo = 8.0f;
     float _dodgeVelo;
-    public float _dodgeNormalDur = 0.2f;
+    public float _dodgeNormalDur = 1f;
     float _dodgeActualDur;
     float _dodgeTimer = 0.0f;
     Vector3 _dodgeDir;
     bool _isDodging = false;
+
+    //attacking
+    bool _isPreparing = false;
+    bool _isAttacking = false;
+    float _prepareTime = 1.5f;
+    float _prepareTimer = 0.0f;
+    public GameObject _attackBallPrefab;
+    public float _ballBottomHeight = 2.2f;
+    float _ballCenterHeight;
+    public float _ballPosRatio = 5.0f / 6.0f;
+    GameObject _myAttackingBall;
+    public GameObject _ballCenterObj;
+
+
+    //debugging
+    public bool _isJinPC = false;
 
 
 	//jin perimeter set up ++++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -76,6 +95,7 @@ public class Movement : MonoBehaviour {
 
     // Use this for initialization
     void Start() {
+        _ballCenterHeight = _ballBottomHeight + _attackBallPrefab.transform.lossyScale.y / 2;
         _dodgeActualDur = _dodgeNormalDur;
         _dodgeVelo = _dodgeMaxVelo;
         _pressGapTimer = _gapThreshold;
@@ -97,11 +117,14 @@ public class Movement : MonoBehaviour {
         _lastDir = Vector3.zero;
         _movementTrackedObj = _movementController.GetComponent<SteamVR_TrackedObject>();
         _lockingObj = _lockViewController.GetComponent<SteamVR_TrackedObject>();
+        _ballLayerMask = ~(1 << LayerMask.NameToLayer(Layers.Ball));
 
-		//
-		anime = playerAni.GetComponent<Animator>();
+        //
+        if (_isJinPC) {
+            anime = playerAni.GetComponent<Animator>();
+        }
     }
-
+    
     // Update is called once per frame
     void Update() {
         _pressGapTimer += Time.deltaTime;
@@ -131,6 +154,13 @@ public class Movement : MonoBehaviour {
         //    Debug.Log("CurMode: " + _curMode + "  Target: " + _targetMode);
         //}
 
+        //if (_isPreparing) {
+        //    Debug.Log("Preparing");
+        //}
+        //if (_isAttacking) {
+        //    Debug.Log("Attacking");
+        //}
+
         _isPressing = false;
         //character rotation and movement, 3rd camera rotate around character
         if (_movementController.gameObject.activeSelf && _lockViewController.gameObject.activeSelf) {
@@ -139,10 +169,45 @@ public class Movement : MonoBehaviour {
                 _movementDevice = SteamVR_Controller.Input((int)_movementTrackedObj.index);
                 _lockingDevice = SteamVR_Controller.Input((int)_lockingObj.index);
 
-                if (_movementDevice.GetPress(SteamVR_Controller.ButtonMask.Touchpad)) {
+                if (_movementDevice.GetPress(SteamVR_Controller.ButtonMask.Touchpad) && !(_isPreparing || _isAttacking)) {
                     PressingInput();
                     _isPressing = true;
                     //transform.Translate(transform.forward * Time.deltaTime * _moveSpeed, Space.World);
+                }
+
+                //Attack
+                if (!_isCamStatic) {
+                    if (_movementDevice.GetPressDown(SteamVR_Controller.ButtonMask.Trigger) && !_isAttacking) {
+                        _myAttackingBall = Instantiate(_attackBallPrefab, GetBallPosition(), Quaternion.identity) as GameObject;
+                        _myAttackingBall.GetComponent<weapon>().UpdateCentralPoint(_ballCenterObj);
+                        //start playing preparing attacking animation
+                    }
+                    if (_movementDevice.GetPress(SteamVR_Controller.ButtonMask.Trigger) && !_isAttacking) {
+                        _isPreparing = true;
+                        _prepareTimer += Time.deltaTime;
+                    } else if (_movementDevice.GetPressUp(SteamVR_Controller.ButtonMask.Trigger)) {
+                        if (_isPreparing) {
+                            _isPreparing = false;
+                            _prepareTimer = 0.0f;
+                            if (_isAttacking) {
+                                //play anim for holding the cannon
+                            } else {
+                                Destroy(_myAttackingBall);
+                                _myAttackingBall = null;
+                                //play anim for putting back the cannon, and maybe ball disappear anim
+                            }
+                        }
+                    }
+                    if (_prepareTimer >= _prepareTime && _isPreparing) {
+                        _isAttacking = true;
+                    }
+
+                    if (_isPreparing || _isAttacking) {
+                        _ballCenterObj.transform.position = GetBallPosition();
+                                                
+                        // substitute lucas's implementation with this
+                        //_myAttackingBall.transform.position = _ballCenterObj.transform.position;
+                    }
                 }
 
                 if (_isDodging) {
@@ -157,7 +222,7 @@ public class Movement : MonoBehaviour {
                         _dodgeVelo = _dodgeMaxVelo;
                         Debug.Log("Finish Dodging");
                     }
-                } else if (_lockingDevice.GetPress(SteamVR_Controller.ButtonMask.Trigger) || _isCamStatic) {
+                } else if (_lockingDevice.GetPress(SteamVR_Controller.ButtonMask.Trigger)) {
                     if (_movementDevice.GetTouch(SteamVR_Controller.ButtonMask.Touchpad)) {
                         Vector3 _dir = new Vector3(_movementDevice.GetAxis().x, 0, _movementDevice.GetAxis().y);
                         if (AngleLessThanThreshold(_dir)) {
@@ -165,18 +230,21 @@ public class Movement : MonoBehaviour {
                         }
                         _lastDir = _dir;
                     }
-                } else {
+                } else if (!_isCamStatic) {
                     transform.rotation = Quaternion.Euler(0, _headSetObj.rotation.eulerAngles.y, 0);
                 }
 
-				if (_movementDevice.GetTouchDown(SteamVR_Controller.ButtonMask.Touchpad) && !_isDodging) {
+				if (_movementDevice.GetTouchDown(SteamVR_Controller.ButtonMask.Touchpad) && !_isDodging && !(_isPreparing || _isAttacking)) {
                     Vector3 _curDir = new Vector3(_movementDevice.GetAxis().x, 0, _movementDevice.GetAxis().y);
                     if (_pressGapTimer < _gapThreshold) {
 						Vector3 _dodgeLocalDir = (_curDir + _lastPress).normalized;
-                        _dodgeDir = Quaternion.FromToRotation(Vector3.forward, _dodgeLocalDir) * transform.forward;
+
+                        Vector3 _headsetForwardWithoutY = _headSetObj.forward;
+                        _headsetForwardWithoutY.y = 0.0f;
+                        _dodgeDir = Quaternion.FromToRotation(Vector3.forward, _dodgeLocalDir) * _headsetForwardWithoutY;
                         _isDodging = true;
                         _inputFactor = 0.0f;
-                        if (_dodgeLocalDir.z > 0) {
+                        if (Vector3.Dot(_dodgeDir, transform.forward) > 0) {
                             PlayDodgeForwardAnim();
                             transform.rotation = Quaternion.LookRotation(_dodgeDir, Vector3.up);
                             _dodgeActualDur = _dodgeNormalDur;
@@ -236,7 +304,7 @@ public class Movement : MonoBehaviour {
                         //collider raycast for getting point infomation when collision happens
                         //this point is where the camera is going to move to for avoiding obstacles
                         RaycastHit _hitInfo;
-						if (Physics.Raycast(transform.position, (_idealHeadSetPos - transform.position).normalized, out _hitInfo, (_idealHeadSetPos - transform.position).magnitude)) {
+						if (Physics.Raycast(transform.position, (_idealHeadSetPos - transform.position).normalized, out _hitInfo, (_idealHeadSetPos - transform.position).magnitude, _ballLayerMask)) {
                             _camBestPos = _hitInfo.point + (transform.position - _idealHeadSetPos) * _camBestPosOffsetFactor;
                             if (_hitInfo.collider.tag == Tags.Ground) {
                                 // it is hitting floor, floor is unique, cuz we don't want player can see from the bottom of the floor, so when hitting with floor
@@ -256,8 +324,8 @@ public class Movement : MonoBehaviour {
                         //bias the local position of camera by changing the position of camera's parent
                         _vrObj.position += LerpToTarget(_nextFramePrePos, _camBestPos) - _headSetObj.position;
                     } else {
-						_vrObj.position += LerpToTarget (_headSetObj.position, _camBestPos) - _headSetObj.position;
-                        //_vrObj.position += _camBestPos - _headSetObj.position;
+						//_vrObj.position += LerpToTarget (_headSetObj.position, _camBestPos) - _headSetObj.position;
+                        _vrObj.position += _camBestPos - _headSetObj.position;
                     }
                 }
 
@@ -274,7 +342,13 @@ public class Movement : MonoBehaviour {
         }
     }
 
-
+    Vector3 GetBallPosition() {
+        Vector3 _ballPosUnfixedY = transform.position - (transform.position - _camBestPos) * _ballPosRatio;
+        if (_ballPosUnfixedY.y < _ballCenterHeight) {
+            _ballPosUnfixedY.y = _ballCenterHeight;
+        }
+        return _ballPosUnfixedY;
+    }
 
     bool AngleLessThanThreshold(Vector3 _dir) {
         if (Vector3.Angle(_dir, _lastDir) < 20) {
@@ -331,19 +405,27 @@ public class Movement : MonoBehaviour {
     }
 
     void PlayDodgeForwardAnim() {
-		anime.SetTrigger ("flip");
+        if (_isJinPC) {
+            anime.SetTrigger("flip");
+        }
     }
 
     void PlayDodgeBackwardAnim() {
-		anime.SetTrigger ("dogge");
+        if (_isJinPC) {
+            anime.SetTrigger ("dogge");
+        }
     }
 
     void PlayRunAnim() {
-        anime.SetBool("run_now", true);
+        if (_isJinPC) {
+            anime.SetBool("run_now", true);
+        }
     }
 
     void PlayStandAnim() {
-        anime.SetBool("run_now", false);
+        if (_isJinPC) {
+            anime.SetBool("run_now", false);
+        }
     }
 
     public void SwitchPerspective() {
