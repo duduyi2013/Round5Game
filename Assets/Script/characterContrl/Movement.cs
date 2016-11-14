@@ -50,11 +50,13 @@ public class Movement : MonoBehaviour {
     bool _isPressing;
 	public float _walkRunTransitDur = 0.3f;
 
-
     bool _isCamStatic; //watching character moving away without updating the positino of camera
     bool _isMoveUnderControl; // only disable movement
 
     Vector3 _staticPos;
+
+    bool _isDefinedWalking = false;
+    Vector3 _definedWalkingTar = Vector3.zero;
 
     //dodging
     Vector3 _lastPress;
@@ -145,6 +147,7 @@ public class Movement : MonoBehaviour {
         if (Input.GetKeyDown(KeyCode.I)) {
             if (_isMoveUnderControl) {
                 TurnOffMoveControll();
+                MoveTo(transform.position + new Vector3(10, 0, 10));
             } else {
                 TurnOnMoveControll();
             }
@@ -171,7 +174,6 @@ public class Movement : MonoBehaviour {
 
                 if (_movementDevice.GetPress(SteamVR_Controller.ButtonMask.Touchpad) && !(_isPreparing || _isAttacking)) {
                     PressingInput();
-                    _isPressing = true;
                     //transform.Translate(transform.forward * Time.deltaTime * _moveSpeed, Space.World);
                 }
 
@@ -255,6 +257,17 @@ public class Movement : MonoBehaviour {
                     }
                     _pressGapTimer = 0.0f;
 					_lastPress = _curDir;
+                }
+            }
+
+            if (_isDefinedWalking) {
+                PressingInput();
+                if (Vector3.Distance(transform.position, _definedWalkingTar) < 0.1f) {
+                    _isDefinedWalking = false;
+                    _inputFactor = 0.0f;
+                    if (!_isJinPC) {
+                        TurnOnMoveControll();
+                    }
                 }
             }
 
@@ -402,6 +415,7 @@ public class Movement : MonoBehaviour {
                 _inputFactor = 1;
             }
         }
+        _isPressing = true;
     }
 
     void PlayDodgeForwardAnim() {
@@ -440,7 +454,16 @@ public class Movement : MonoBehaviour {
         }
     }
 
-
+    public void MoveTo(Vector3 _tar) {
+        if (!_isMoveUnderControl) {
+            _definedWalkingTar = _tar;
+            Vector3 _dir = _tar - transform.position;
+            transform.rotation *= Quaternion.FromToRotation(transform.forward, _dir.normalized);
+            _isDefinedWalking = true;
+        } else {
+            Debug.LogWarning("Cannot do MoveTo now, cuz movement is under control");
+        }
+    }
 
     public void MakeCamStatic() {
         _isCamStatic = true;

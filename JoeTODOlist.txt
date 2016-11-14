@@ -1,3 +1,5 @@
-1. test ball generation and ispreparing or isattacking state
-2. 2 freedom rotation with dodging
-3. character running cause distance betweeen camera and character longer
+1. test ball generation and ispreparing or isattacking state (double checked)
+2. 2 freedom rotation with dodging (double checked)
+3. cam lerp or not based on how far the best pos is away from the cam current position (checked)
+4. character running cause distance betweeen camera and character longer
+5. switch between cam static and free need to hold the left hand trigger all the time, otherwise the character should only walk in the same direction as he enters into the zone(checked)
