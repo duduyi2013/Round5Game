@@ -168,7 +168,7 @@ public class Movement : MonoBehaviour {
         //character rotation and movement, 3rd camera rotate around character
         if (_movementController.gameObject.activeSelf && _lockViewController.gameObject.activeSelf) {
 
-            if (_curMode == ViewMode.ThirdPerson && _isMoveUnderControl) {
+        if (_curMode == ViewMode.ThirdPerson && _isMoveUnderControl) {
                 _movementDevice = SteamVR_Controller.Input((int)_movementTrackedObj.index);
                 _lockingDevice = SteamVR_Controller.Input((int)_lockingObj.index);
 

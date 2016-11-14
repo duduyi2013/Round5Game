@@ -3,7 +3,8 @@ using System.Collections;
 
 public class weapon : MonoBehaviour
 {
-
+	AudioSource _myAud;
+	public AudioClip _ballHit;
     GameObject centralPoint;
 	GameObject monster;
 	public GameObject level4;
@@ -27,6 +28,8 @@ public class weapon : MonoBehaviour
 		is_hit = false;
 		start_scale = this.transform.localScale;
 		already_fired = false;
+
+		_myAud = GetComponent<AudioSource> ();
     }
 
     // Update is called once per frame
@@ -120,26 +123,32 @@ public class weapon : MonoBehaviour
             local_timer = 0;
 			is_hit = true;
 			already_fired = true;
+
+			_myAud.clip = _ballHit;
+			_myAud.volume = 0.1f;
+			_myAud.Play ();
         }
     }
 	void OnCollisionEnter(Collision colli) {
 		Explode ();
 	}
 	void HitTheMonster(){
-		if (monster.activeSelf && is_hitting_out && (this.transform.position - monster.transform.position).magnitude < 3) {
+		if (monster.activeSelf && is_hitting_out && (this.transform.position - monster.transform.position).magnitude < 5) {
 			Explode ();
 			Debug.Log ("hit");
 		}
 	}
 	void Explode(){
 		Debug.Log ("boom");
+		Vector3 tmp_velocity = this.GetComponent<Rigidbody> ().velocity;
 		this.GetComponent<Rigidbody> ().velocity = new Vector3 (0, 0, 0);
 		this.already_hit_other_things = true;
 		if(monster != null){
 			if ((this.transform.position - monster.transform.position).magnitude < 10){
 				//Monster dies
 				//monster.SetActive(false);
-				PublicVariables.monsterDead = true;
+				//PublicVariables.monsterDead = true;
+				monster.GetComponent<Lerp_1>().hit_by_weapon(tmp_velocity);
 			}
 		}
 	}

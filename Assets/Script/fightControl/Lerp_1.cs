@@ -48,7 +48,7 @@ public class Lerp_1 : MonoBehaviour {
         t3 = 0.5f;
         t4 = 5;
         t5 = 0.5f;
-        t6 = 5f;
+        t6 = 2f;
 		this.transform.position = new Vector3 (this.transform.position.x, target.transform.position.y, this.transform.position.z);
         times_of_being_hit = 0;
     }
@@ -72,14 +72,16 @@ public class Lerp_1 : MonoBehaviour {
         if( times_of_being_hit > 2)
         {
             change_state(20);
+			PublicVariables.monsterDead = true;
         }
         else
         {
-            ball_hit_speed = hit_speed;
-            this.GetComponent<Rigidbody>().velocity = hit_speed.normalized * 20f;
-            float rotating_angle = Mathf.Acos(Vector3.Dot(hit_speed.normalized, new Vector3(1, 0, 0))) * 180f / 3.14f;
-            Vector3 rotating_axis = Vector3.Cross(new Vector3(1, 0, 0), hit_speed).normalized;
+			ball_hit_speed = new Vector3(hit_speed.x,0,hit_speed.z).normalized * 20f;
+			this.GetComponent<Rigidbody>().velocity = new Vector3(hit_speed.x,0,hit_speed.z).normalized * 20f;
+			float rotating_angle = Mathf.Acos(Vector3.Dot(new Vector3(-hit_speed.x,0,-hit_speed.z), new Vector3(1, 0, 0))) * 180f / 3.14f;
+			Vector3 rotating_axis = Vector3.Cross(new Vector3(1, 0, 0), new Vector3(-hit_speed.x,0,-hit_speed.z)).normalized;
             this.transform.rotation = Quaternion.AngleAxis(rotating_angle, rotating_axis);
+			this.transform.rotation = Quaternion.AngleAxis(180, new Vector3(0,1,0));
             change_state(18);
             _timer_for_attacking = 0;
         }
@@ -234,13 +236,33 @@ public class Lerp_1 : MonoBehaviour {
     }
     void Hit_Back()
     {
-        this.GetComponent<Rigidbody>().velocity -= ball_hit_speed * 0.4f *(Time.fixedDeltaTime / t5);
+		this.GetComponent<Rigidbody>().velocity -= ball_hit_speed *(Time.fixedDeltaTime / t5);
 
     }
     void Being_Attacked()
     {
-        Chasing3(0.01f, 0.0001f);
-    }
+		float _acc = 0.001f;
+		float _speed = 0.01f;
+		Vector3 _relativePosition = target.transform.position - this.transform.position;
+		Vector3 _targetVelocity = target.GetComponent<Rigidbody>().velocity;
+		Vector3 _selfVelocity = this.GetComponent<Rigidbody>().velocity;
+		if (_selfVelocity.magnitude > 0)
+		{
+			Vector3 _tmpVector = Vector3.Cross(_selfVelocity.normalized, _relativePosition.normalized);
+			Vector3 _n_direction_times_sin = Vector3.Cross(_tmpVector, GetComponent<Rigidbody>().velocity.normalized);
+			this.GetComponent<Rigidbody>().velocity += _acc * _n_direction_times_sin * Time.fixedDeltaTime;
+			this.GetComponent<Rigidbody>().velocity = GetComponent<Rigidbody>().velocity.normalized * _speed;
+			float rotating_angle = Mathf.Acos(Vector3.Dot(this.GetComponent<Rigidbody>().velocity.normalized, new Vector3(1, 0, 0))) * 180f / 3.14f;
+			Vector3 rotating_axis = Vector3.Cross(new Vector3(1, 0, 0), this.GetComponent<Rigidbody>().velocity).normalized;
+			this.transform.rotation = Quaternion.AngleAxis(rotating_angle, rotating_axis);
+			//this.transform.rotation = Quaternion.AngleAxis(180, new Vector3(0,1,0));
+
+		}
+		else
+		{
+			this.GetComponent<Rigidbody>().velocity += Time.fixedDeltaTime *_relativePosition * 0.001f;
+		}    
+	}
     void Dead()
     {
         Chasing3(0.0001f, 0.000001f);   

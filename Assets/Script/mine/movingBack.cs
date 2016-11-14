@@ -2,7 +2,8 @@
 using System.Collections;
 
 public class movingBack : MonoBehaviour {
-
+	AudioSource _myAud;
+	public AudioClip _glitchSound;
 	public GameObject newLocation;
 	private Vector3 newloc_pos;
 
@@ -20,6 +21,7 @@ public class movingBack : MonoBehaviour {
 		lenght = Vector3.Distance (this.transform.position, newloc_pos);
 		StartCoroutine (delayMove());
 		glitchNow = camera_main.GetComponent<GlitchEffect> ();
+		_myAud = GetComponent<AudioSource> ();
 	}
 
 	// Update is called once per frame
@@ -38,6 +40,9 @@ public class movingBack : MonoBehaviour {
 		startToMove = true;
 		yield return new WaitForSeconds (10f);
 		glitchNow.enabled = true;
+		_myAud.clip = _glitchSound;
+		_myAud.volume = 1.0f;
+		_myAud.Play ();
 		yield return new WaitForSeconds (13f);
 		//load next scene
 		Application.LoadLevel(1);

@@ -24,6 +24,11 @@ public class level4_management : MonoBehaviour {
 	private bool endNow=false;
     bool _isMoveUnderControl = true;
 
+	AudioSource _myAud;
+	public AudioClip BattlingBGM;
+	public AudioClip AfterBattleBGM;
+
+
 	// Use this for initialization
 	void Start () {
 		characterMove = GetComponent<Movement> ();
@@ -37,6 +42,8 @@ public class level4_management : MonoBehaviour {
 
 		StartCoroutine (startAnimation());
 		PublicVariables.monsterDead = false;
+
+		_myAud = GetComponent<AudioSource> ();
 	}
 	
 	// Update is called once per frame
@@ -72,6 +79,10 @@ public class level4_management : MonoBehaviour {
 		characterMove.SwitchPerspective ();
 		boss.SetActive (true);
 		endingAnimation.SetActive (false);
+
+		_myAud.clip = BattlingBGM;
+		_myAud.volume = 1.0f;
+		_myAud.Play ();
 	}
 
 
@@ -84,6 +95,11 @@ public class level4_management : MonoBehaviour {
 
 		yield return new WaitForSeconds (5);
 		glitchNow.enabled = true;
+
+		_myAud.clip = AfterBattleBGM;
+		_myAud.volume = 1f;
+		_myAud.Play ();
+
 		fakeWorld.SetActive (false);
 		deadPeople.SetActive (true);
 		monsterModel.SetActive (false);
@@ -102,7 +118,6 @@ public class level4_management : MonoBehaviour {
 		endingAnimation.SetActive (true);
 		hidMonster.SetActive (false);
 		anie_end.SetTrigger ("finalshot");
-
 	}
 
 
