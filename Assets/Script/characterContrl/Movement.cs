@@ -214,6 +214,7 @@ public class Movement : MonoBehaviour {
                         if (!_movementDevice.GetPress(SteamVR_Controller.ButtonMask.Trigger) && _isAttacking && _myAttackingBall.GetComponent<weapon>().CheckIfItIsBack()) {
                             Destroy(_myAttackingBall);
                             _myAttackingBall = null;
+                            _isAttacking = false;
                             //play anim for putting back the cannon, and maybe ball disappear anim
                         }
                     }
