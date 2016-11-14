@@ -5,9 +5,10 @@ public class weapon : MonoBehaviour
 {
 
     GameObject centralPoint;
+
     // Use this for initialization
     float factor_force, factor_resi_n, factor_resi_tau, weaponRadius;
-	bool is_hitting_out, already_hit_other_things, is_hit;
+	bool is_hitting_out, already_hit_other_things, is_hit, already_fired;
     float local_timer;
 	Vector3 start_scale;
     void Start()
@@ -23,7 +24,7 @@ public class weapon : MonoBehaviour
 		already_hit_other_things = false;
 		is_hit = false;
 		start_scale = this.transform.localScale;
-        
+		already_fired = false;
     }
 
     // Update is called once per frame
@@ -92,9 +93,9 @@ public class weapon : MonoBehaviour
 			is_hit = false;
 			Debug.Log ("wen");
 		}
-    }
+    } 
 	public bool CheckIfItIsBack(){
-		return !is_hit;
+		return (!is_hit && already_fired);
 	}
     void OnTriggerEnter(Collider c)
     {
@@ -109,6 +110,7 @@ public class weapon : MonoBehaviour
             is_hitting_out = true;
             local_timer = 0;
 			is_hit = true;
+			already_fired = true;
         }
     }      
 }

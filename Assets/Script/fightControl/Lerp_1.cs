@@ -27,7 +27,7 @@ public class Lerp_1 : MonoBehaviour {
     public float t4;// 休息时间
     
 	void Start () { 
-        target = GameObject.FindGameObjectWithTag("target");
+        //target = GameObject.FindGameObjectWithTag("target");
         chasing_speed = 5;
         chasing_acc = 5;
         rushing_speed = 30;
@@ -43,7 +43,7 @@ public class Lerp_1 : MonoBehaviour {
         t2 = 2;
         t3 = 0.4f;
         t4 = 3;
-
+		this.transform.position = new Vector3 (this.transform.position.x, target.transform.position.y, this.transform.position.z);
     }
     //Vector3 Vector3.toXZ()
     //{
