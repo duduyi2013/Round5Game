@@ -4,5 +4,5 @@ using System.Collections;
 public class PublicVariables {
     // the radius of the ball
     public static float weaponRadius; // need to be initiate when the weapon shows up , now intitiated at "NTC1" 
-    
+	public static bool monsterDead;
 }
