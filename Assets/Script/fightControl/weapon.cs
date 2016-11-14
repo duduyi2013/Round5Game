@@ -104,7 +104,7 @@ public class weapon : MonoBehaviour
 		}
     } 
 	public bool CheckIfItIsBack(){
-		return (!is_hit && already_fired);
+        return (!is_hit);// && already_fired);
 	}
     void OnTriggerEnter(Collider c)
     {
