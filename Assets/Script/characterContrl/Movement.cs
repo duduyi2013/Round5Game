@@ -223,7 +223,6 @@ public class Movement : MonoBehaviour {
 
                 if (_isDodging) {
                     _inputFactor = 0.0f;
-                    Debug.Log("Dodge!!");
                     //_dodgeVelo -= _dodgeMaxVelo * Time.deltaTime / _dodgeActualDur;
 
                     _dodgeTimer += Time.deltaTime;
@@ -271,11 +270,9 @@ public class Movement : MonoBehaviour {
 
             if (_isDefinedWalking) {
                 PressingInput();
-				Debug.Log ("OHHEY");
 				Vector3 _posWithoutY = transform.position;
 				_posWithoutY.y = 0.0f;
 				if (Vector3.Distance(_posWithoutY, _definedWalkingTar) < 0.1f) {
-					Debug.Log ("YEAH");
                     _isDefinedWalking = false;
                     _inputFactor = 0.0f;
 
@@ -468,14 +465,25 @@ public class Movement : MonoBehaviour {
         }
     }
 
-    public void MoveTo(Vector3 _tar) {
-        if (!_isMoveUnderControl) {
-            _definedWalkingTar = _tar;
-            Vector3 _dir = _tar - transform.position;
-            transform.rotation *= Quaternion.FromToRotation(transform.forward, _dir.normalized);
-            _isDefinedWalking = true;
-        } else {
-            Debug.LogWarning("Cannot do MoveTo now, cuz movement is under control");
+    public bool MoveTo(Vector3 _tar) {
+        if (_movementController.gameObject.activeSelf && _lockViewController.gameObject.activeSelf)
+        {
+            if (!_isMoveUnderControl)
+            {
+                _definedWalkingTar = _tar;
+                Vector3 _dir = _tar - transform.position;
+                _dir.y = 0.0f;
+                transform.rotation *= Quaternion.FromToRotation(transform.forward, _dir.normalized);
+                _isDefinedWalking = true;
+            }
+            else
+            {
+                Debug.LogWarning("Cannot do MoveTo now, cuz movement is under control");
+            }
+            return true;
+        } else
+        {
+            return false;
         }
     }
 

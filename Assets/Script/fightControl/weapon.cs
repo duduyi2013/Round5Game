@@ -101,7 +101,6 @@ public class weapon : MonoBehaviour
 		if ((this.GetComponent<Rigidbody> ().velocity.magnitude + 1) * (_relativePosition.magnitude + 1) < 1.1f) 
 		{
 			is_hit = false;
-			Debug.Log ("wen");
 		}
     } 
 	public bool CheckIfItIsBack(){
@@ -149,7 +148,6 @@ public class weapon : MonoBehaviour
 		Color tmp = this.GetComponent<MeshRenderer> ().materials [0].color;
 		if (!is_hit) {
 			this.GetComponent<MeshRenderer> ().materials [1].color = new Color (tmp.r, tmp.g, tmp.b, 1);
-			Debug.Log ("bianlv");
 		} else {
 			this.GetComponent<MeshRenderer> ().materials [1].color = new Color (tmp.r, tmp.g, tmp.b, 0);
 
