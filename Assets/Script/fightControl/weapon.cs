@@ -5,6 +5,8 @@ public class weapon : MonoBehaviour
 {
 
     GameObject centralPoint;
+	GameObject monster;
+	public GameObject level4;
 
     // Use this for initialization
     float factor_force, factor_resi_n, factor_resi_tau, weaponRadius;
@@ -35,11 +37,19 @@ public class weapon : MonoBehaviour
     void FixedUpdate()
     {
         Gettingback(Time.fixedDeltaTime);
+		if (monster != null) {
+			HitTheMonster ();
+		}
+		AdjustColor ();
+
     }
     public void UpdateCentralPoint(GameObject cP) 
     {
         centralPoint = cP;
     }
+	public void UpdateMonster(GameObject mS){
+		monster = mS;
+	}
     void Gettingback(float deltaTime)
     {
         Vector3 _relativePosition = this.transform.position - centralPoint.transform.position;
@@ -91,7 +101,6 @@ public class weapon : MonoBehaviour
 		if ((this.GetComponent<Rigidbody> ().velocity.magnitude + 1) * (_relativePosition.magnitude + 1) < 1.1f) 
 		{
 			is_hit = false;
-			Debug.Log ("wen");
 		}
     } 
 	public bool CheckIfItIsBack(){
@@ -112,5 +121,36 @@ public class weapon : MonoBehaviour
 			is_hit = true;
 			already_fired = true;
         }
-    }      
+    }
+	void OnCollisionEnter(Collision colli) {
+		Explode ();
+	}
+	void HitTheMonster(){
+		if (monster.activeSelf && is_hitting_out && (this.transform.position - monster.transform.position).magnitude < 3) {
+			Explode ();
+			Debug.Log ("hit");
+		}
+	}
+	void Explode(){
+		Debug.Log ("boom");
+		this.GetComponent<Rigidbody> ().velocity = new Vector3 (0, 0, 0);
+		this.already_hit_other_things = true;
+		if(monster != null){
+			if ((this.transform.position - monster.transform.position).magnitude < 10){
+				//Monster dies
+				//monster.SetActive(false);
+				PublicVariables.monsterDead = true;
+			}
+		}
+	}
+
+	void AdjustColor(){
+		Color tmp = this.GetComponent<MeshRenderer> ().materials [0].color;
+		if (!is_hit) {
+			this.GetComponent<MeshRenderer> ().materials [1].color = new Color (tmp.r, tmp.g, tmp.b, 1);
+		} else {
+			this.GetComponent<MeshRenderer> ().materials [1].color = new Color (tmp.r, tmp.g, tmp.b, 0);
+
+		}
+	}
 }

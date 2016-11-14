@@ -37,12 +37,12 @@ public class Lerp_1 : MonoBehaviour {
         _timer_for_attacking = 0;
         attacking_state = 0;
         dis2 = 5;
-        dis1 = 20; 
+        dis1 = 25; 
         dis3 = 15;
         t1 = 5;
-        t2 = 2;
-        t3 = 0.4f;
-        t4 = 3;
+        t2 = 4;
+        t3 = 0.5f;
+        t4 = 5;
 		this.transform.position = new Vector3 (this.transform.position.x, target.transform.position.y, this.transform.position.z);
     }
     //Vector3 Vector3.toXZ()
@@ -241,7 +241,7 @@ public class Lerp_1 : MonoBehaviour {
                 break;
         }
         attacking_state = state;
-        Debug.Log(state);
+        //Debug.Log(state);
     }
     int Monster_state_machine()
     {

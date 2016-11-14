@@ -8,6 +8,7 @@ public class Movement : MonoBehaviour {
     public Transform _vrObj;
     public Transform _headSetObj;
 	public Transform _bodyChild;
+	public GameObject _monster;
 
     SteamVR_TrackedObject _movementTrackedObj;
     SteamVR_Controller.Device _movementDevice;
@@ -51,12 +52,12 @@ public class Movement : MonoBehaviour {
 	public float _walkRunTransitDur = 0.3f;
 
     bool _isCamStatic; //watching character moving away without updating the positino of camera
-    bool _isMoveUnderControl; // only disable movement
+	bool _isMoveUnderControl = true; // only disable movement
 
     Vector3 _staticPos;
 
     bool _isDefinedWalking = false;
-    Vector3 _definedWalkingTar = Vector3.zero;
+    public Vector3 _definedWalkingTar = Vector3.zero;
 
     //dodging
     Vector3 _lastPress;
@@ -90,7 +91,7 @@ public class Movement : MonoBehaviour {
 	//jin perimeter set up ++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 	[Space][Space]
 	public GameObject playerAni;
-	private Animator anime;
+	public Animator anime;
 
 	//jin perimeter set up END ++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
@@ -102,7 +103,6 @@ public class Movement : MonoBehaviour {
         _dodgeVelo = _dodgeMaxVelo;
         _pressGapTimer = _gapThreshold;
         _lastPress = Vector3.zero;
-        _isMoveUnderControl = true;
         _isCamStatic = false;
         _isFlashingToFloor = false;
         _isPressing = false;
@@ -182,7 +182,8 @@ public class Movement : MonoBehaviour {
                     if (_movementDevice.GetPressDown(SteamVR_Controller.ButtonMask.Trigger) && !_isAttacking) {
                         _myAttackingBall = Instantiate(_attackBallPrefab, GetBallPosition(), Quaternion.identity) as GameObject;
                         _myAttackingBall.GetComponent<weapon>().UpdateCentralPoint(_ballCenterObj);
-                        //start playing preparing attacking animation
+						_myAttackingBall.GetComponent<weapon>().UpdateMonster(_monster);
+						//start playing preparing attacking animation
                     }
                     if (_movementDevice.GetPress(SteamVR_Controller.ButtonMask.Trigger) && !_isAttacking) {
                         _isPreparing = true;
@@ -222,7 +223,6 @@ public class Movement : MonoBehaviour {
 
                 if (_isDodging) {
                     _inputFactor = 0.0f;
-                    Debug.Log("Dodge!!");
                     //_dodgeVelo -= _dodgeMaxVelo * Time.deltaTime / _dodgeActualDur;
 
                     _dodgeTimer += Time.deltaTime;
@@ -270,9 +270,12 @@ public class Movement : MonoBehaviour {
 
             if (_isDefinedWalking) {
                 PressingInput();
-                if (Vector3.Distance(transform.position, _definedWalkingTar) < 0.1f) {
+				Vector3 _posWithoutY = transform.position;
+				_posWithoutY.y = 0.0f;
+				if (Vector3.Distance(_posWithoutY, _definedWalkingTar) < 0.1f) {
                     _isDefinedWalking = false;
                     _inputFactor = 0.0f;
+
                     if (!_isJinPC) {
                         TurnOnMoveControll();
                     }
@@ -462,14 +465,25 @@ public class Movement : MonoBehaviour {
         }
     }
 
-    public void MoveTo(Vector3 _tar) {
-        if (!_isMoveUnderControl) {
-            _definedWalkingTar = _tar;
-            Vector3 _dir = _tar - transform.position;
-            transform.rotation *= Quaternion.FromToRotation(transform.forward, _dir.normalized);
-            _isDefinedWalking = true;
-        } else {
-            Debug.LogWarning("Cannot do MoveTo now, cuz movement is under control");
+    public bool MoveTo(Vector3 _tar) {
+        if (_movementController.gameObject.activeSelf && _lockViewController.gameObject.activeSelf)
+        {
+            if (!_isMoveUnderControl)
+            {
+                _definedWalkingTar = _tar;
+                Vector3 _dir = _tar - transform.position;
+                _dir.y = 0.0f;
+                transform.rotation *= Quaternion.FromToRotation(transform.forward, _dir.normalized);
+                _isDefinedWalking = true;
+            }
+            else
+            {
+                Debug.LogWarning("Cannot do MoveTo now, cuz movement is under control");
+            }
+            return true;
+        } else
+        {
+            return false;
         }
     }
 
