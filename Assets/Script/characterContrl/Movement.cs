@@ -39,7 +39,6 @@ public class Movement : MonoBehaviour {
     Vector3 _camBestPos;
     Vector3 _nextFramePrePos;
     float _camBestPosOffsetFactor;
-    bool _isFlashingToFloor;
 
     float _lerpEndDistance = 0.01f;
     float _lerpEndRate = 0.005f;
@@ -58,6 +57,8 @@ public class Movement : MonoBehaviour {
 
     bool _isDefinedWalking = false;
     public Vector3 _definedWalkingTar = Vector3.zero;
+    Vector3 _headSetForwardWithoutY;
+
 
     //dodging
     Vector3 _lastPress;
@@ -104,7 +105,6 @@ public class Movement : MonoBehaviour {
         _pressGapTimer = _gapThreshold;
         _lastPress = Vector3.zero;
         _isCamStatic = false;
-        _isFlashingToFloor = false;
         _isPressing = false;
         _inputFactor = 0.0f;
         _myRb = GetComponent<Rigidbody>();
@@ -168,7 +168,7 @@ public class Movement : MonoBehaviour {
         //character rotation and movement, 3rd camera rotate around character
         if (_movementController.gameObject.activeSelf && _lockViewController.gameObject.activeSelf) {
 
-        if (_curMode == ViewMode.ThirdPerson && _isMoveUnderControl) {
+            if (_curMode == ViewMode.ThirdPerson && _isMoveUnderControl) {
                 _movementDevice = SteamVR_Controller.Input((int)_movementTrackedObj.index);
                 _lockingDevice = SteamVR_Controller.Input((int)_lockingObj.index);
 
@@ -221,50 +221,48 @@ public class Movement : MonoBehaviour {
                     }
                 }
 
-                if (_isDodging) {
-                    _inputFactor = 0.0f;
-                    //_dodgeVelo -= _dodgeMaxVelo * Time.deltaTime / _dodgeActualDur;
-
-                    _dodgeTimer += Time.deltaTime;
-                    if (_dodgeTimer >= _dodgeActualDur) {
-                        _isDodging = false;
-                        _dodgeTimer = 0.0f;
-                        _dodgeVelo = _dodgeMaxVelo;
-                        Debug.Log("Finish Dodging");
+                if (_movementDevice.GetPress(SteamVR_Controller.ButtonMask.Touchpad) && !_isDodging) {
+                    if (_movementDevice.GetPressDown(SteamVR_Controller.ButtonMask.Touchpad)) {
+                        _headSetForwardWithoutY = _headSetObj.forward;
+                        _headSetForwardWithoutY.y = 0.0f;
                     }
-                } else if (_lockingDevice.GetPress(SteamVR_Controller.ButtonMask.Trigger)) {
-                    if (_movementDevice.GetTouch(SteamVR_Controller.ButtonMask.Touchpad)) {
-                        Vector3 _dir = new Vector3(_movementDevice.GetAxis().x, 0, _movementDevice.GetAxis().y);
-                        if (AngleLessThanThreshold(_dir)) {
-                            transform.rotation *= Quaternion.FromToRotation(_lastDir, _dir);
-                        }
-                        _lastDir = _dir;
-                    }
-                } else if (!_isCamStatic) {
-                    transform.rotation = Quaternion.Euler(0, _headSetObj.rotation.eulerAngles.y, 0);
+                    Vector3 _dir = new Vector3(_movementDevice.GetAxis().x, 0, _movementDevice.GetAxis().y).normalized;
+                    transform.forward = Quaternion.FromToRotation(Vector3.forward, _dir) * _headSetForwardWithoutY;
                 }
 
-				if (_movementDevice.GetTouchDown(SteamVR_Controller.ButtonMask.Touchpad) && !_isDodging && !(_isPreparing || _isAttacking)) {
-                    Vector3 _curDir = new Vector3(_movementDevice.GetAxis().x, 0, _movementDevice.GetAxis().y);
-                    if (_pressGapTimer < _gapThreshold) {
-						Vector3 _dodgeLocalDir = (_curDir + _lastPress).normalized;
+                //else if (_lockingDevice.GetPress(SteamVR_Controller.ButtonMask.Trigger)) {
+                //    if (_movementDevice.GetTouch(SteamVR_Controller.ButtonMask.Touchpad)) {
+                //        Vector3 _dir = new Vector3(_movementDevice.GetAxis().x, 0, _movementDevice.GetAxis().y);
+                //        if (AngleLessThanThreshold(_dir)) {
+                //            transform.rotation *= Quaternion.FromToRotation(_lastDir, _dir);
+                //        }
+                //        _lastDir = _dir;
+                //    }
+                //} else if (!_isCamStatic) {
+                //    transform.rotation = Quaternion.Euler(0, _headSetObj.rotation.eulerAngles.y, 0);
+                //}
 
-                        Vector3 _headsetForwardWithoutY = _headSetObj.forward;
-                        _headsetForwardWithoutY.y = 0.0f;
-                        _dodgeDir = Quaternion.FromToRotation(Vector3.forward, _dodgeLocalDir) * _headsetForwardWithoutY;
-                        _isDodging = true;
-                        _inputFactor = 0.0f;
-                        if (Vector3.Dot(_dodgeDir, transform.forward) > 0) {
-                            PlayDodgeForwardAnim();
-                            transform.rotation = Quaternion.LookRotation(_dodgeDir, Vector3.up);
-                            _dodgeActualDur = _dodgeNormalDur;
-                        } else {
-                            PlayDodgeBackwardAnim();
-                            _dodgeActualDur = _dodgeNormalDur / 2.0f;
-                        }
+                if (_movementDevice.GetTouchDown(SteamVR_Controller.ButtonMask.Touchpad) && !_isDodging && !(_isPreparing || _isAttacking)) {
+                Vector3 _curDir = new Vector3(_movementDevice.GetAxis().x, 0, _movementDevice.GetAxis().y);
+                if (_pressGapTimer < _gapThreshold) {
+					Vector3 _dodgeLocalDir = (_curDir + _lastPress).normalized;
+
+                    Vector3 _headsetForwardWithoutY = _headSetObj.forward;
+                    _headsetForwardWithoutY.y = 0.0f;
+                    _dodgeDir = Quaternion.FromToRotation(Vector3.forward, _dodgeLocalDir) * _headsetForwardWithoutY;
+                    _isDodging = true;
+                    _inputFactor = 0.0f;
+                    if (Vector3.Dot(_dodgeDir, transform.forward) > 0) {
+                        PlayDodgeForwardAnim();
+                        transform.rotation = Quaternion.LookRotation(_dodgeDir, Vector3.up);
+                        _dodgeActualDur = _dodgeNormalDur;
+                    } else {
+                        PlayDodgeBackwardAnim();
+                        _dodgeActualDur = _dodgeNormalDur / 2.0f;
                     }
-                    _pressGapTimer = 0.0f;
-					_lastPress = _curDir;
+                }
+                _pressGapTimer = 0.0f;
+				_lastPress = _curDir;
                 }
             }
 
@@ -282,7 +280,21 @@ public class Movement : MonoBehaviour {
                 }
             }
 
+            if (_isDodging) {
+                _inputFactor = 0.0f;
+                //_dodgeVelo -= _dodgeMaxVelo * Time.deltaTime / _dodgeActualDur;
+
+                _dodgeTimer += Time.deltaTime;
+                if (_dodgeTimer >= _dodgeActualDur) {
+                    _isDodging = false;
+                    _dodgeTimer = 0.0f;
+                    _dodgeVelo = _dodgeMaxVelo;
+                    Debug.Log("Finish Dodging");
+                }
+            }
+
             _myRb.velocity = transform.forward * _moveSpeed * _inputFactor;
+
             if (_isDodging) {
                 _myRb.velocity += _dodgeVelo * _dodgeDir;
             }
@@ -311,50 +323,49 @@ public class Movement : MonoBehaviour {
                     //Debug.Log("Yeah");
                 }
             }
-
-            _isFlashingToFloor = false;
+            
 
             if (!_isCamStatic) {
+                Vector3 _myNextTransform = transform.position + _myRb.velocity * Time.deltaTime;
                 if (_curMode != ViewMode.FirstPerson) {
                     //transform.rotation = Quaternion.Euler(0, _tarRot.rotation.eulerAngles.y, 0); // sync rot for both 3rd cam and 1st cam
-                    Vector3 _idealHeadSetPos = -_headSetObj.forward * _radius + transform.position;
+                    Vector3 _idealHeadSetPos = -_headSetObj.forward * _radius + _myNextTransform;
                     // the ideal position for 3rd person camera's position when rotation head, ideal here means without obstacle
                     float _realRadius = Vector3.Distance(transform.position, _headSetObj.position);
                     //radius from current frame, which is used for calculating next pre-position before lerping along the line
-                    _nextFramePrePos = transform.position + (_idealHeadSetPos - transform.position).normalized * _realRadius;
+                    _nextFramePrePos = _myNextTransform + (_idealHeadSetPos - _myNextTransform).normalized * _realRadius;
                     //used radius from last frame and calculating pre-position in next frame which is actually used for lerping
 
                     if (_curMode == ViewMode.ThirdPerson || _targetMode == ViewMode.ThirdPerson) {
                         //collider raycast for getting point infomation when collision happens
                         //this point is where the camera is going to move to for avoiding obstacles
                         RaycastHit _hitInfo;
-						if (Physics.Raycast(transform.position, (_idealHeadSetPos - transform.position).normalized, out _hitInfo, (_idealHeadSetPos - transform.position).magnitude, _ballLayerMask)) {
-                            _camBestPos = _hitInfo.point + (transform.position - _idealHeadSetPos) * _camBestPosOffsetFactor;
+						if (Physics.Raycast(_myNextTransform, (_idealHeadSetPos - _myNextTransform).normalized, out _hitInfo, (_idealHeadSetPos - _myNextTransform).magnitude, _ballLayerMask)) {
+                            _camBestPos = _hitInfo.point + (_myNextTransform - _idealHeadSetPos) * _camBestPosOffsetFactor;
                             if (_hitInfo.collider.tag == Tags.Ground) {
                                 // it is hitting floor, floor is unique, cuz we don't want player can see from the bottom of the floor, so when hitting with floor
                                 // and the camera is not lerping back, it should disable lerping and set position directly
-                                if (!IsPointBetween(_nextFramePrePos, _camBestPos, transform.position)) {
-                                    _isFlashingToFloor = true;
+                                if (IsPointBetween(_nextFramePrePos, _camBestPos, _myNextTransform)) {
+                                    _vrObj.position += LerpToTarget(_nextFramePrePos, _camBestPos) - _headSetObj.position;
+                                } else {
+                                    _vrObj.position += _camBestPos - _headSetObj.position;
                                 }
+                            } else {
+                                _vrObj.position += LerpToTarget(_nextFramePrePos, _camBestPos) - _headSetObj.position;
                             }
                         } else {
                             _camBestPos = _idealHeadSetPos;
+                            _vrObj.position += _camBestPos - _headSetObj.position;
                         }
                     } else {
-                        _camBestPos = transform.position;
-                    }
-
-                    if (!_isFlashingToFloor) {
-                        //bias the local position of camera by changing the position of camera's parent
-                        _vrObj.position += LerpToTarget(_nextFramePrePos, _camBestPos) - _headSetObj.position;
-                    } else {
-						//_vrObj.position += LerpToTarget (_headSetObj.position, _camBestPos) - _headSetObj.position;
+                        _camBestPos = _myNextTransform;
                         _vrObj.position += _camBestPos - _headSetObj.position;
                     }
+                    
                 }
 
                 if (_curMode == ViewMode.FirstPerson) {
-                    _vrObj.position += transform.position - _headSetObj.position;
+                    _vrObj.position += _myNextTransform - _headSetObj.position;
                 }
                 _staticPos = Vector3.zero;
             } else {
@@ -386,7 +397,7 @@ public class Movement : MonoBehaviour {
         float _diffX = (input.x - point1.x) * (input.x - point2.x);
         float _diffY = (input.y - point1.y) * (input.y - point2.y);
         float _diffZ = (input.z - point1.z) * (input.z - point2.z);
-        if (_diffX <= 0 && _diffY <= 0 && _diffZ <= 0) {
+        if (_diffX < 0 && _diffY < 0 && _diffZ < 0) {
             return true;
         } else {
             return false;
