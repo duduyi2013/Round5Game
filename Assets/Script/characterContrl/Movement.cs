@@ -340,7 +340,7 @@ public class Movement : MonoBehaviour {
                         //collider raycast for getting point infomation when collision happens
                         //this point is where the camera is going to move to for avoiding obstacles
                         RaycastHit _hitInfo;
-						if (Physics.Raycast(_myNextTransform, (_idealHeadSetPos - _myNextTransform).normalized, out _hitInfo, (_idealHeadSetPos - _myNextTransform).magnitude, _ballLayerMask)) {
+                        if (Physics.Raycast(_myNextTransform, (_idealHeadSetPos - _myNextTransform).normalized, out _hitInfo, (_idealHeadSetPos - _myNextTransform).magnitude, _ballLayerMask)) {
                             _camBestPos = _hitInfo.point + (_myNextTransform - _idealHeadSetPos) * _camBestPosOffsetFactor;
                             if (_hitInfo.collider.tag == Tags.Ground) {
                                 // it is hitting floor, floor is unique, cuz we don't want player can see from the bottom of the floor, so when hitting with floor
@@ -357,11 +357,13 @@ public class Movement : MonoBehaviour {
                             _camBestPos = _idealHeadSetPos;
                             _vrObj.position += _camBestPos - _headSetObj.position;
                         }
+                    } else if (_curMode == ViewMode.Transition) {
+                        _camBestPos = _myNextTransform;
+                        _vrObj.position += LerpToTarget(_nextFramePrePos, _camBestPos) - _headSetObj.position;
                     } else {
                         _camBestPos = _myNextTransform;
                         _vrObj.position += _camBestPos - _headSetObj.position;
                     }
-                    
                 }
 
                 if (_curMode == ViewMode.FirstPerson) {
