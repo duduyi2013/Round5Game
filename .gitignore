@@ -12,4 +12,5 @@
 !/Assets/Script/fightControl/*
 !/Assets/Script/mine/
 !/Assets/Script/mine/*
+!/Assets/Script/mine/Glitch/*
 !.gitignore
